@@ -251,7 +251,7 @@ function initHome3D() {
   const baseScale = 1.44;
   const leftShiftVw = 5;
   const rightCompensationRatio = 0.5;
-  const extraRightTravelVw = 5;
+  const extraRightTravelVw = 2.5;
   const introBookHalfWidthX = (2.1 * baseScale) / 2;
   const introBookHalfHeightY = (2.1 * (210 / 148) * baseScale) / 2;
   const interactionHalfX = introBookHalfWidthX * 1.05;
