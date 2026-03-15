@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E북 리딩 스튜디오 | 리더</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+
+  <main id="readerShell" class="reader-shell">
+    <aside class="settings-dock">
+      <a id="homeBtn" class="settings-tab home-btn" href="./index.html" aria-label="메인으로 돌아가기" title="메인으로 돌아가기">
+        <img class="btn-icon" src="./assets/homeicon.png" alt="" />
+      </a>
+
+      <div class="settings-menu">
+        <button id="settingsTabBtn" class="settings-tab" type="button" aria-label="설정" title="설정">
+          <img class="btn-icon" src="./assets/settingsicon.png" alt="" />
+        </button>
+
+        <div id="settingsActions" class="settings-actions">
+          <button id="fullscreenBtn" class="action-btn" type="button" aria-label="전체화면" title="전체화면">
+            <img id="fullscreenIcon" class="btn-icon" src="./assets/fullicon.png" alt="" />
+          </button>
+          <button id="toggleSettingsBtn" class="action-btn" type="button" aria-label="페이지 설정" title="페이지 설정">
+            <img class="btn-icon" src="./assets/textsettingsicon.png" alt="" />
+          </button>
+        </div>
+      </div>
+
+      <section id="controls" class="controls hidden" aria-label="리더 설정">
+        <div class="control control-select">
+          <label for="pageTone">페이지 색</label>
+          <select id="pageTone">
+            <option value="default">아이보리</option>
+            <option value="warm">베이지</option>
+            <option value="white" selected>화이트</option>
+          </select>
+          <span class="range-value"></span>
+        </div>
+
+        <div class="control">
+          <label for="fontSize">글자 크기</label>
+          <input id="fontSize" type="range" min="14" max="32" step="1" value="15" />
+          <span id="fontSizeValue" class="range-value">15px</span>
+        </div>
+
+        <div class="control">
+          <label for="lineHeight">줄 간격</label>
+          <input id="lineHeight" type="range" min="1.3" max="2.2" step="0.1" value="1.7" />
+          <span id="lineHeightValue" class="range-value">1.7</span>
+        </div>
+
+        <div class="control">
+          <label for="pagePadY">상하 여백</label>
+          <input id="pagePadY" type="range" min="18" max="72" step="1" value="50" />
+          <span id="pagePadYValue" class="range-value">50px</span>
+        </div>
+
+        <div class="control">
+          <label for="pagePadX">좌우 여백</label>
+          <input id="pagePadX" type="range" min="12" max="56" step="1" value="40" />
+          <span id="pagePadXValue" class="range-value">40px</span>
+        </div>
+      </section>
+    </aside>
+
+    <section class="spread-wrap">
+      <div class="spread-frame">
+        <button id="prevBtn" class="side-nav side-nav-left" type="button" aria-label="이전 페이지" title="이전 페이지">‹</button>
+
+        <div class="spread">
+          <article id="leftPage" class="page" title="왼쪽 페이지 클릭: 이전">
+            <div id="leftContent" class="page-content"></div>
+            <div id="leftPageNumber" class="page-number"></div>
+          </article>
+
+          <article id="rightPage" class="page" title="오른쪽 페이지 클릭: 다음">
+            <div id="rightContent" class="page-content"></div>
+            <div id="rightPageNumber" class="page-number"></div>
+          </article>
+        </div>
+
+        <p id="readingMeta" class="reading-meta"></p>
+
+        <button id="nextBtn" class="side-nav side-nav-right" type="button" aria-label="다음 페이지" title="다음 페이지">›</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
