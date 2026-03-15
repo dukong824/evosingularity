@@ -87,7 +87,7 @@ body {
   width: min(calc(540 * var(--rvu)), 96%);
   justify-self: end;
   position: relative;
-  transform: translate(calc(-12 * var(--rvu)), calc(-20 * var(--rvu)));
+  transform: translate(calc(-12 * var(--rvu)), calc(-21 * var(--rvu)));
   z-index: 30;
   pointer-events: auto;
   opacity: 1;
@@ -99,7 +99,7 @@ body {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translate(calc(-12 * var(--rvu)), calc(-26 * var(--rvu)));
+  transform: translate(calc(-12 * var(--rvu)), calc(-26 * var(--rvu) - 5vh));
   transition: opacity 220ms ease, transform 220ms ease, visibility 0s linear 220ms;
 }
 
