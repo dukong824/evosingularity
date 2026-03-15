@@ -10,6 +10,33 @@ let coverImageSrc = "";
 let spineImageSrc = "";
 let home3d = null;
 
+function sanitizeAssetURL(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (/[\u0000-\u001F]/.test(raw)) {
+    return "";
+  }
+  if (/^(?:javascript|data|vbscript|file|blob):/i.test(raw)) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(raw, window.location.href);
+    if (parsed.origin !== window.location.origin) {
+      return "";
+    }
+    if (!/\.(?:png|jpe?g|webp|gif|svg)$/i.test(parsed.pathname)) {
+      return "";
+    }
+  } catch (error) {
+    return "";
+  }
+
+  return raw;
+}
+
 async function loadBookMeta() {
   try {
     const response = await fetch("./book.json", { cache: "no-store" });
@@ -17,8 +44,8 @@ async function loadBookMeta() {
       return;
     }
     const data = await response.json();
-    coverImageSrc = String(data?.coverImage || data?.cover || "").trim();
-    spineImageSrc = String(data?.spineImage || data?.spine || "").trim();
+    coverImageSrc = sanitizeAssetURL(data?.coverImage || data?.cover || "");
+    spineImageSrc = sanitizeAssetURL(data?.spineImage || data?.spine || "");
   } catch (error) {
     coverImageSrc = "";
     spineImageSrc = "";
@@ -33,7 +60,7 @@ function createBookCuboidA5(THREE) {
   const blockThickness = 0.34;
   const coverThickness = 0.04;
 
-  const edgeGray = 0xf2f2f2;
+  const edgeGray = 0xf5f5f5;
 
   const faceBack = new THREE.MeshStandardMaterial({
     color: edgeGray,
@@ -43,14 +70,28 @@ function createBookCuboidA5(THREE) {
     emissiveIntensity: 0.0
   });
   const facePages = new THREE.MeshStandardMaterial({
-    color: 0xf5f5f5,
+    color: 0xf8f8f8,
     metalness: 0.0,
     roughness: 0.82,
     emissive: 0x111111,
     emissiveIntensity: 0.01
   });
+  const faceTop = new THREE.MeshStandardMaterial({
+    color: 0xd2d2d2,
+    metalness: 0.0,
+    roughness: 0.98,
+    emissive: 0x000000,
+    emissiveIntensity: 0.0
+  });
+  const faceBottom = new THREE.MeshStandardMaterial({
+    color: 0xe6e6e6,
+    metalness: 0.0,
+    roughness: 0.9,
+    emissive: 0x000000,
+    emissiveIntensity: 0.0
+  });
   const faceSpine = new THREE.MeshStandardMaterial({
-    color: 0xf1f1f1,
+    color: 0xf4f4f4,
     metalness: 0.0,
     roughness: 0.92,
     emissive: 0x000000,
@@ -67,7 +108,7 @@ function createBookCuboidA5(THREE) {
 
   const pageBlock = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, blockThickness),
-    [facePages, faceSpine, facePages, facePages, pagesFront, faceBack]
+    [facePages, faceSpine, faceTop, faceBottom, pagesFront, faceBack]
   );
   group.add(pageBlock);
 
@@ -93,7 +134,7 @@ function createBookCuboidA5(THREE) {
     emissiveIntensity: 0.0
   });
   const coverEdge = new THREE.MeshStandardMaterial({
-    color: 0xe2e2e2,
+    color: 0xe5e5e5,
     metalness: 0.0,
     roughness: 0.9,
     emissive: 0x111111,

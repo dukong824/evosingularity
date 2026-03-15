@@ -81,6 +81,33 @@ function escapeHTML(str) {
     .replace(/'/g, "&#39;");
 }
 
+function sanitizeAssetURL(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (/[\u0000-\u001F]/.test(raw)) {
+    return "";
+  }
+  if (/^(?:javascript|data|vbscript|file|blob):/i.test(raw)) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(raw, window.location.href);
+    if (parsed.origin !== window.location.origin) {
+      return "";
+    }
+    if (!/\.(?:png|jpe?g|webp|gif|svg)$/i.test(parsed.pathname)) {
+      return "";
+    }
+  } catch (error) {
+    return "";
+  }
+
+  return raw;
+}
+
 function blockToHTML(block) {
   if (!block) {
     return "";
@@ -99,8 +126,12 @@ function blockToHTML(block) {
   }
 
   if (block.type === "image") {
+    const safeSrc = sanitizeAssetURL(block.src || "");
+    if (!safeSrc) {
+      return "";
+    }
     const alt = escapeHTML(block.alt || "");
-    const src = escapeHTML(block.src || "");
+    const src = escapeHTML(safeSrc);
     const caption = block.caption ? `<figcaption>${escapeHTML(block.caption)}</figcaption>` : "";
     const kindClass = block.mode === "full" ? "media-full" : "media-inline";
     return `<figure class="media-block ${kindClass}"><img src="${src}" alt="${alt}" loading="lazy" />${caption}</figure>`;
@@ -174,7 +205,7 @@ function createBookCuboidA5(THREE) {
   const blockThickness = 0.34;
   const coverThickness = 0.04;
 
-  const edgeGray = 0xf2f2f2;
+  const edgeGray = 0xf5f5f5;
 
   const faceBack = new THREE.MeshStandardMaterial({
     color: edgeGray,
@@ -184,14 +215,28 @@ function createBookCuboidA5(THREE) {
     emissiveIntensity: 0.0
   });
   const facePages = new THREE.MeshStandardMaterial({
-    color: 0xf5f5f5,
+    color: 0xf8f8f8,
     metalness: 0.0,
     roughness: 0.82,
     emissive: 0x111111,
     emissiveIntensity: 0.01
   });
+  const faceTop = new THREE.MeshStandardMaterial({
+    color: 0xd2d2d2,
+    metalness: 0.0,
+    roughness: 0.98,
+    emissive: 0x000000,
+    emissiveIntensity: 0.0
+  });
+  const faceBottom = new THREE.MeshStandardMaterial({
+    color: 0xe6e6e6,
+    metalness: 0.0,
+    roughness: 0.9,
+    emissive: 0x000000,
+    emissiveIntensity: 0.0
+  });
   const faceSpine = new THREE.MeshStandardMaterial({
-    color: 0xf1f1f1,
+    color: 0xf4f4f4,
     metalness: 0.0,
     roughness: 0.92,
     emissive: 0x000000,
@@ -210,8 +255,8 @@ function createBookCuboidA5(THREE) {
   const pageBlockMaterials = [
     facePages, // right edge
     faceSpine, // left edge (spine)
-    facePages, // top edge
-    facePages, // bottom edge
+    faceTop, // top edge
+    faceBottom, // bottom edge
     pagesFront, // page face (front)
     faceBack  // back cover
   ];
@@ -244,7 +289,7 @@ function createBookCuboidA5(THREE) {
     emissiveIntensity: 0.0
   });
   const coverEdge = new THREE.MeshStandardMaterial({
-    color: 0xd0d0d0,
+    color: 0xe5e5e5,
     metalness: 0.0,
     roughness: 0.9,
     emissive: 0x111111,
@@ -531,8 +576,8 @@ function initIntro3D() {
 function normalizeBookData(raw) {
   const result = {
     tocTitle: String(raw?.tocTitle || raw?.title || FALLBACK_BOOK.tocTitle).trim() || FALLBACK_BOOK.tocTitle,
-    coverImage: String(raw?.coverImage || raw?.cover || "").trim(),
-    spineImage: String(raw?.spineImage || raw?.spine || "").trim(),
+    coverImage: sanitizeAssetURL(raw?.coverImage || raw?.cover || ""),
+    spineImage: sanitizeAssetURL(raw?.spineImage || raw?.spine || ""),
     blocks: []
   };
 
@@ -595,9 +640,13 @@ function normalizeBookData(raw) {
     }
 
     if (entry.type === "image" && typeof entry.src === "string" && entry.src.trim()) {
+      const safeSrc = sanitizeAssetURL(entry.src);
+      if (!safeSrc) {
+        continue;
+      }
       result.blocks.push({
         type: "image",
-        src: entry.src.trim(),
+        src: safeSrc,
         alt: String(entry.alt || ""),
         caption: String(entry.caption || "").trim(),
         mode: entry.mode === "full" ? "full" : "inline"
