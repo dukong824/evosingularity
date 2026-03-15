@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>E북 리딩 스튜디오 | 리더</title>
+  <title>진화의 특이점 | E북</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -33,18 +33,24 @@
 
       <section id="controls" class="controls hidden" aria-label="리더 설정">
         <div class="control control-select">
-          <label for="pageTone">페이지 색</label>
-          <select id="pageTone">
-            <option value="default">아이보리</option>
-            <option value="warm">베이지</option>
-            <option value="white" selected>화이트</option>
-          </select>
+          <label id="pageToneLabel" for="pageToneTrigger">페이지 색</label>
+          <div id="pageToneSelect" class="custom-select">
+            <button id="pageToneTrigger" class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pageToneLabel pageToneTriggerText">
+              <span id="pageToneTriggerText">화이트</span>
+              <span class="custom-select-caret" aria-hidden="true"></span>
+            </button>
+            <div id="pageToneOptions" class="custom-select-options hidden" role="listbox" aria-labelledby="pageToneLabel">
+              <button class="custom-select-option is-selected" type="button" role="option" aria-selected="true" data-value="white">화이트</button>
+              <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="default">아이보리</button>
+              <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="warm">베이지</button>
+            </div>
+          </div>
           <span class="range-value"></span>
         </div>
 
         <div class="control">
           <label for="fontSize">글자 크기</label>
-          <input id="fontSize" type="range" min="14" max="32" step="1" value="15" />
+          <input id="fontSize" type="range" min="10" max="30" step="1" value="15" />
           <span id="fontSizeValue" class="range-value">15px</span>
         </div>
 
@@ -56,14 +62,14 @@
 
         <div class="control">
           <label for="pagePadY">상하 여백</label>
-          <input id="pagePadY" type="range" min="18" max="72" step="1" value="50" />
-          <span id="pagePadYValue" class="range-value">50px</span>
+          <input id="pagePadY" type="range" min="30" max="90" step="1" value="60" />
+          <span id="pagePadYValue" class="range-value">60px</span>
         </div>
 
         <div class="control">
           <label for="pagePadX">좌우 여백</label>
-          <input id="pagePadX" type="range" min="12" max="56" step="1" value="40" />
-          <span id="pagePadXValue" class="range-value">40px</span>
+          <input id="pagePadX" type="range" min="30" max="90" step="1" value="60" />
+          <span id="pagePadXValue" class="range-value">60px</span>
         </div>
       </section>
     </aside>

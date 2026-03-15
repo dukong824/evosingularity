@@ -12,8 +12,8 @@ let spreadIndex = 0;
 let fontSize = 15;
 let lineHeight = 1.7;
 let pageTone = "white";
-let pagePadY = 50;
-let pagePadX = 40;
+let pagePadY = 60;
+let pagePadX = 60;
 let tocTitle = "목차 제목";
 let coverImageSrc = "";
 let spineImageSrc = "";
@@ -23,7 +23,16 @@ let introClosed = true;
 let introFading = false;
 let introFadeOut = false;
 let measureEl = null;
+let paginationSafetyBoostPx = 0;
+let modeSettingProfiles = {
+  windowed: null,
+  fullscreen: null
+};
 const imageMeta = new Map();
+const MAX_PAGINATION_STABILIZE_PASSES = 8;
+const OVERFLOW_EPSILON_PX = 0.5;
+const PAGINATION_BASE_SAFETY_RATIO = 0.14;
+const PAGINATION_MAX_SAFETY_BOOST_PX = 14;
 
 const controls = document.getElementById("controls");
 const settingsTabBtn = document.getElementById("settingsTabBtn");
@@ -51,7 +60,11 @@ const fontSizeInput = document.getElementById("fontSize");
 const lineHeightInput = document.getElementById("lineHeight");
 const pagePadYInput = document.getElementById("pagePadY");
 const pagePadXInput = document.getElementById("pagePadX");
-const pageToneInput = document.getElementById("pageTone");
+const pageToneSelect = document.getElementById("pageToneSelect");
+const pageToneTrigger = document.getElementById("pageToneTrigger");
+const pageToneTriggerText = document.getElementById("pageToneTriggerText");
+const pageToneOptions = document.getElementById("pageToneOptions");
+const pageToneOptionButtons = Array.from(document.querySelectorAll(".custom-select-option[data-value]"));
 const fontSizeValue = document.getElementById("fontSizeValue");
 const lineHeightValue = document.getElementById("lineHeightValue");
 const pagePadYValue = document.getElementById("pagePadYValue");
@@ -66,11 +79,162 @@ const PAGE_TONE_MAP = {
   warm: "#f8f1e3",
   white: "#ffffff"
 };
+const PAGE_TONE_LABEL_MAP = {
+  default: "아이보리",
+  warm: "베이지",
+  white: "화이트"
+};
+const FULLSCREEN_PROFILE_BOOST = {
+  fontSize: 3,
+  pagePadY: 10,
+  pagePadX: 10
+};
 
 let intro3d = null;
 const INTRO_EXIT_MS = 1050;
 const INTRO_FADE_START_RATIO = 0.82;
 const INTRO_PREMOVE_RATIO = 0.26;
+
+function viewportWidth() {
+  return Math.max(window.innerWidth || document.documentElement.clientWidth || 1, 1);
+}
+
+function viewportHeight() {
+  return Math.max(window.innerHeight || document.documentElement.clientHeight || 1, 1);
+}
+
+function toVw(value) {
+  return `${(Number(value) / viewportWidth() * 100).toFixed(4)}vw`;
+}
+
+function toVh(value) {
+  return `${(Number(value) / viewportHeight() * 100).toFixed(4)}vh`;
+}
+
+function toVmin(value) {
+  const basis = Math.max(Math.min(viewportWidth(), viewportHeight()), 1);
+  return `${(Number(value) / basis * 100).toFixed(4)}vmin`;
+}
+
+function toPxInt(value) {
+  return `${Math.round(Number(value))}px`;
+}
+
+function updateRangeFill(input) {
+  if (!input) {
+    return;
+  }
+  const min = Number(input.min ?? 0);
+  const max = Number(input.max ?? 100);
+  const value = Number(input.value ?? min);
+  const ratio = max > min ? (value - min) / (max - min) : 0;
+  const clamped = Math.max(0, Math.min(1, ratio));
+  input.style.setProperty("--range-fill", `${(clamped * 100).toFixed(2)}%`);
+}
+
+function clampToInputRange(value, input) {
+  const min = Number(input?.min ?? value);
+  const max = Number(input?.max ?? value);
+  if (Number.isNaN(min) || Number.isNaN(max)) {
+    return Number(value);
+  }
+  return Math.max(min, Math.min(max, Number(value)));
+}
+
+function syncControlInputValues() {
+  if (fontSizeInput) {
+    fontSizeInput.value = String(fontSize);
+  }
+  if (lineHeightInput) {
+    lineHeightInput.value = String(lineHeight);
+  }
+  if (pagePadYInput) {
+    pagePadYInput.value = String(pagePadY);
+  }
+  if (pagePadXInput) {
+    pagePadXInput.value = String(pagePadX);
+  }
+}
+
+function buildProfileFromCurrent() {
+  return {
+    fontSize: clampToInputRange(fontSize, fontSizeInput),
+    lineHeight: clampToInputRange(lineHeight, lineHeightInput),
+    pagePadY: clampToInputRange(pagePadY, pagePadYInput),
+    pagePadX: clampToInputRange(pagePadX, pagePadXInput),
+    pageTone: pageTone in PAGE_TONE_MAP ? pageTone : "white"
+  };
+}
+
+function getCurrentModeKey() {
+  return document.fullscreenElement ? "fullscreen" : "windowed";
+}
+
+function persistCurrentModeProfile() {
+  modeSettingProfiles[getCurrentModeKey()] = buildProfileFromCurrent();
+}
+
+function ensureFullscreenProfile() {
+  if (modeSettingProfiles.fullscreen) {
+    return;
+  }
+  const source = modeSettingProfiles.windowed || buildProfileFromCurrent();
+  modeSettingProfiles.fullscreen = {
+    fontSize: clampToInputRange(Number(source.fontSize) + FULLSCREEN_PROFILE_BOOST.fontSize, fontSizeInput),
+    lineHeight: clampToInputRange(source.lineHeight, lineHeightInput),
+    pagePadY: clampToInputRange(Number(source.pagePadY) + FULLSCREEN_PROFILE_BOOST.pagePadY, pagePadYInput),
+    pagePadX: clampToInputRange(Number(source.pagePadX) + FULLSCREEN_PROFILE_BOOST.pagePadX, pagePadXInput),
+    pageTone: source.pageTone in PAGE_TONE_MAP ? source.pageTone : "white"
+  };
+}
+
+function applyModeProfile(modeKey) {
+  if (modeKey === "fullscreen") {
+    ensureFullscreenProfile();
+  }
+
+  const profile = modeSettingProfiles[modeKey] || modeSettingProfiles.windowed || buildProfileFromCurrent();
+  fontSize = clampToInputRange(profile.fontSize, fontSizeInput);
+  lineHeight = clampToInputRange(profile.lineHeight, lineHeightInput);
+  pagePadY = clampToInputRange(profile.pagePadY, pagePadYInput);
+  pagePadX = clampToInputRange(profile.pagePadX, pagePadXInput);
+  pageTone = profile.pageTone in PAGE_TONE_MAP ? profile.pageTone : "white";
+  syncControlInputValues();
+}
+
+function closePageToneOptions() {
+  if (!pageToneSelect || !pageToneTrigger || !pageToneOptions) {
+    return;
+  }
+  pageToneSelect.classList.remove("is-open");
+  pageToneOptions.classList.add("hidden");
+  pageToneTrigger.setAttribute("aria-expanded", "false");
+}
+
+function togglePageToneOptions() {
+  if (!pageToneSelect || !pageToneTrigger || !pageToneOptions) {
+    return;
+  }
+  const nextOpen = pageToneOptions.classList.contains("hidden");
+  pageToneSelect.classList.toggle("is-open", nextOpen);
+  pageToneOptions.classList.toggle("hidden", !nextOpen);
+  pageToneTrigger.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+}
+
+function syncPageToneControl() {
+  if (!pageToneTriggerText || !pageToneOptionButtons.length) {
+    return;
+  }
+  if (!(pageTone in PAGE_TONE_MAP)) {
+    pageTone = "white";
+  }
+  pageToneTriggerText.textContent = PAGE_TONE_LABEL_MAP[pageTone] || PAGE_TONE_LABEL_MAP.white;
+  pageToneOptionButtons.forEach((button) => {
+    const isSelected = button.dataset.value === pageTone;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-selected", isSelected ? "true" : "false");
+  });
+}
 
 function escapeHTML(str) {
   return String(str)
@@ -125,6 +289,16 @@ function blockToHTML(block) {
     return `<p class="paragraph">${escapeHTML(block.text).replace(/\n/g, "<br>")}</p>`;
   }
 
+  if (block.type === "quote") {
+    const quoteText = escapeHTML(block.text || block.quote || "").replace(/\n/g, "<br>").trim();
+    if (!quoteText) {
+      return "";
+    }
+    const authorText = escapeHTML(block.author || block.name || block.person || "").trim();
+    const authorHTML = authorText ? `<p class="quote-author">${authorText}</p>` : "";
+    return `<blockquote class="quote-block"><p class="quote-text">${quoteText}</p>${authorHTML}</blockquote>`;
+  }
+
   if (block.type === "image") {
     const safeSrc = sanitizeAssetURL(block.src || "");
     if (!safeSrc) {
@@ -155,34 +329,55 @@ function ensureMeasureElement() {
   measureEl = document.createElement("div");
   measureEl.className = "page-content";
   measureEl.style.position = "fixed";
-  measureEl.style.left = "-100000px";
+  measureEl.style.left = "-10000vw";
   measureEl.style.top = "0";
   measureEl.style.visibility = "hidden";
   measureEl.style.pointerEvents = "none";
   measureEl.style.zIndex = "-1";
-  measureEl.style.padding = "0";
   measureEl.style.margin = "0";
-  measureEl.style.overflow = "visible";
+  measureEl.style.overflow = "hidden";
   document.body.appendChild(measureEl);
   return measureEl;
 }
 
 function setPageContentStyle(target, pageHeight) {
-  target.style.fontSize = `${fontSize}px`;
+  target.style.fontSize = toVmin(fontSize);
   target.style.lineHeight = String(lineHeight);
-  target.style.setProperty("--page-h", `${pageHeight}px`);
+  target.style.setProperty("--page-h", `${Math.max(0, Number(pageHeight)).toFixed(2)}px`);
+}
+
+function getElementInnerSize(el) {
+  if (!el) {
+    return { width: 0, height: 0 };
+  }
+  const rect = el.getBoundingClientRect();
+  const style = window.getComputedStyle(el);
+  const padLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const padRight = Number.parseFloat(style.paddingRight) || 0;
+  const padTop = Number.parseFloat(style.paddingTop) || 0;
+  const padBottom = Number.parseFloat(style.paddingBottom) || 0;
+  const width = Math.max(0, rect.width - padLeft - padRight);
+  const height = Math.max(0, rect.height - padTop - padBottom);
+  return { width, height };
 }
 
 function fitSpreadToViewport() {
-  if (!spreadWrap || !spread || window.matchMedia("(max-width: 860px)").matches) {
+  if (!spreadWrap || !spread || window.matchMedia("(max-aspect-ratio: 43/40)").matches) {
     spread.style.width = "";
     spread.style.height = "";
     return;
   }
 
   const ratio = 1.41421356;
-  const availableWidth = spreadWrap.clientWidth;
-  const availableHeight = spreadWrap.clientHeight;
+  const wrapStyle = window.getComputedStyle(spreadWrap);
+  const wrapPadLeft = Number.parseFloat(wrapStyle.paddingLeft) || 0;
+  const wrapPadRight = Number.parseFloat(wrapStyle.paddingRight) || 0;
+  const wrapPadTop = Number.parseFloat(wrapStyle.paddingTop) || 0;
+  const wrapPadBottom = Number.parseFloat(wrapStyle.paddingBottom) || 0;
+  const frameStyle = spreadFrame ? window.getComputedStyle(spreadFrame) : null;
+  const framePadBottom = frameStyle ? (Number.parseFloat(frameStyle.paddingBottom) || 0) : 0;
+  const availableWidth = Math.max(0, spreadWrap.clientWidth - wrapPadLeft - wrapPadRight);
+  const availableHeight = Math.max(0, spreadWrap.clientHeight - wrapPadTop - wrapPadBottom - framePadBottom);
 
   let width = Math.max(0, availableWidth);
   let height = width / ratio;
@@ -192,8 +387,8 @@ function fitSpreadToViewport() {
     width = height * ratio;
   }
 
-  spread.style.width = `${Math.floor(width)}px`;
-  spread.style.height = `${Math.floor(height)}px`;
+  spread.style.width = toVw(Math.floor(width));
+  spread.style.height = toVh(Math.floor(height));
 }
 
 function createBookCuboidA5(THREE) {
@@ -639,6 +834,19 @@ function normalizeBookData(raw) {
       continue;
     }
 
+    if (entry.type === "quote" || entry.quote != null || entry.author != null) {
+      const quoteText = entry.text ?? entry.quote ?? entry.content;
+      const authorText = entry.author ?? entry.name ?? entry.person ?? entry.speaker;
+      if (typeof quoteText === "string" && quoteText.trim()) {
+        result.blocks.push({
+          type: "quote",
+          text: quoteText.trim(),
+          author: typeof authorText === "string" ? authorText.trim() : ""
+        });
+      }
+      continue;
+    }
+
     if (entry.type === "image" && typeof entry.src === "string" && entry.src.trim()) {
       const safeSrc = sanitizeAssetURL(entry.src);
       if (!safeSrc) {
@@ -721,11 +929,32 @@ async function loadBook() {
 
 function pageFits(candidateBlocks, pageWidth, pageHeight) {
   const probe = ensureMeasureElement();
-  probe.style.width = `${pageWidth}px`;
+  probe.style.width = `${Math.max(0, Number(pageWidth)).toFixed(2)}px`;
   probe.style.height = "auto";
   setPageContentStyle(probe, pageHeight);
   probe.innerHTML = blocksToHTML(candidateBlocks);
-  return probe.scrollHeight <= pageHeight + 1;
+  const computedLineHeight = Number.parseFloat(window.getComputedStyle(probe).lineHeight);
+  const estimatedLinePx = Number.isFinite(computedLineHeight)
+    ? computedLineHeight
+    : Math.max(12, Number(fontSize) * Number(lineHeight));
+  const baseSafetyPx = Math.max(1, Math.ceil(estimatedLinePx * PAGINATION_BASE_SAFETY_RATIO));
+  const bottomSafetyPx = baseSafetyPx + paginationSafetyBoostPx;
+  const measuredHeight = Math.max(probe.scrollHeight, probe.getBoundingClientRect().height);
+  return measuredHeight <= Math.max(0, pageHeight - bottomSafetyPx);
+}
+
+function getContentOverflowPx(contentEl) {
+  if (!contentEl) {
+    return 0;
+  }
+  const overflowY = Math.max(0, contentEl.scrollHeight - contentEl.clientHeight);
+  return overflowY;
+}
+
+function getCurrentSpreadOverflowPx(currentSpread) {
+  const leftOverflow = getContentOverflowPx(leftContent);
+  const rightOverflow = currentSpread?.hasRight ? getContentOverflowPx(rightContent) : 0;
+  return Math.max(leftOverflow, rightOverflow);
 }
 
 function chooseTextCutBoundary(text, bestIndex) {
@@ -775,8 +1004,9 @@ function findFittingTextCut(text, currentBlocks, pageWidth, pageHeight) {
 }
 
 function repaginate(anchorAbsolutePage = 0) {
-  const pageWidth = leftContent.clientWidth;
-  const pageHeight = leftContent.clientHeight;
+  const innerSize = getElementInnerSize(leftContent);
+  const pageWidth = innerSize.width;
+  const pageHeight = innerSize.height;
 
   if (!pageWidth || !pageHeight) {
     return;
@@ -806,19 +1036,22 @@ function repaginate(anchorAbsolutePage = 0) {
         continue;
       }
 
-      if (block.type === "text" && pageBlocks.length === 0) {
+      if (block.type === "text") {
         const cut = findFittingTextCut(block.text, pageBlocks, pageWidth, pageHeight);
         const front = block.text.slice(0, cut).trimEnd();
         const rest = block.text.slice(cut).trimStart();
+        const frontFits = front
+          ? pageFits([...pageBlocks, { type: "text", text: front }], pageWidth, pageHeight)
+          : false;
 
-        if (front) {
+        if (front && frontFits) {
           pageBlocks.push({ type: "text", text: front });
-        }
-
-        if (rest) {
-          queue[0] = { ...block, text: rest };
-        } else {
-          queue.shift();
+          if (rest) {
+            queue[0] = { ...block, text: rest };
+          } else {
+            queue.shift();
+          }
+          continue;
         }
       }
 
@@ -852,6 +1085,32 @@ function getSpreadPages(allPages, currentSpreadIndex) {
   };
 }
 
+function getCurrentChapterTitle(absolutePageIndex) {
+  if (!Array.isArray(pages) || pages.length === 0) {
+    return tocTitle;
+  }
+
+  const safePageIndex = Math.max(0, Math.min(absolutePageIndex, pages.length - 1));
+  let currentTitle = String(tocTitle || "").trim() || FALLBACK_BOOK.tocTitle;
+
+  for (let i = 0; i <= safePageIndex; i += 1) {
+    const page = pages[i];
+    if (!page || !Array.isArray(page.blocks)) {
+      continue;
+    }
+    for (const block of page.blocks) {
+      if (block?.type === "chapter") {
+        const title = String(block.title || "").trim();
+        if (title) {
+          currentTitle = title;
+        }
+      }
+    }
+  }
+
+  return currentTitle;
+}
+
 function isFullImagePage(page) {
   return !!(page && page.blocks && page.blocks.length === 1 && page.blocks[0].type === "image" && page.blocks[0].mode === "full");
 }
@@ -863,12 +1122,17 @@ function renderPage(pageData, pageEl, contentEl, pageHeight) {
   contentEl.innerHTML = blocksToHTML(pageData.blocks);
 }
 
-function render() {
+function render(stabilizePass = 0) {
+  if (stabilizePass === 0) {
+    paginationSafetyBoostPx = 0;
+  }
+
   const totalPages = pages.length;
   const totalSpreads = Math.ceil(totalPages / 2);
   const currentSpread = getSpreadPages(pages, spreadIndex);
 
-  const pageHeight = leftContent.clientHeight || 600;
+  const innerSize = getElementInnerSize(leftContent);
+  const pageHeight = innerSize.height || 600;
 
   renderPage(currentSpread.left, leftPage, leftContent, pageHeight);
 
@@ -899,27 +1163,72 @@ function render() {
   prevBtn.disabled = introClosed || introFading || spreadIndex === 0;
   nextBtn.disabled = introFading || (!introClosed && spreadIndex >= totalSpreads - 1);
   controls.classList.toggle("hidden", !showControls);
+  if (!showControls) {
+    closePageToneOptions();
+  }
   settingsActions.classList.toggle("is-open", showSettingsActions);
   settingsTabBtn.setAttribute("aria-expanded", showSettingsActions ? "true" : "false");
+  syncPageToneControl();
   document.documentElement.style.setProperty("--paper", PAGE_TONE_MAP[pageTone] || PAGE_TONE_MAP.default);
-  document.documentElement.style.setProperty("--page-pad-y", `${pagePadY}px`);
-  document.documentElement.style.setProperty("--page-pad-x", `${pagePadX}px`);
+  document.documentElement.style.setProperty("--page-pad-y", toVh(pagePadY));
+  document.documentElement.style.setProperty("--page-pad-x", toVw(pagePadX));
 
-  const absolutePageIndex = introClosed ? 0 : Math.min(spreadIndex * 2, Math.max(totalPages - 1, 0));
-  const progressPercent = totalPages <= 1 ? 100 : Math.round((absolutePageIndex / (totalPages - 1)) * 100);
-  readingMeta.textContent = `${progressPercent}% | ${tocTitle}`;
+  const visibleLastPageIndex = introClosed
+    ? 0
+    : Math.min(
+      spreadIndex * 2 + (currentSpread.hasRight ? 1 : 0),
+      Math.max(totalPages - 1, 0)
+    );
+  const progressSpreadIndex = (introClosed || spreadIndex === 0) ? 0 : Math.min(spreadIndex, Math.max(totalSpreads - 1, 0));
+  const progressPercent = totalSpreads <= 1 ? 100 : Math.round((progressSpreadIndex / (totalSpreads - 1)) * 100);
+  const chapterTitle = getCurrentChapterTitle(visibleLastPageIndex);
+  readingMeta.textContent = `${progressPercent}% | ${chapterTitle}`;
 
-  fontSizeValue.textContent = `${fontSize}px`;
+  fontSizeValue.textContent = toPxInt(fontSize);
   lineHeightValue.textContent = lineHeight.toFixed(1);
-  pagePadYValue.textContent = `${pagePadY}px`;
-  pagePadXValue.textContent = `${pagePadX}px`;
+  pagePadYValue.textContent = toPxInt(pagePadY);
+  pagePadXValue.textContent = toPxInt(pagePadX);
+  syncControlInputValues();
+  updateRangeFill(fontSizeInput);
+  updateRangeFill(lineHeightInput);
+  updateRangeFill(pagePadYInput);
+  updateRangeFill(pagePadXInput);
+
+  if (!introClosed && !introFading && stabilizePass < MAX_PAGINATION_STABILIZE_PASSES) {
+    const overflowPx = getCurrentSpreadOverflowPx(currentSpread);
+    if (overflowPx > OVERFLOW_EPSILON_PX) {
+      const boostStep = Math.max(1, Math.min(2, Math.ceil(overflowPx)));
+      paginationSafetyBoostPx = Math.min(PAGINATION_MAX_SAFETY_BOOST_PX, paginationSafetyBoostPx + boostStep);
+      repaginate(spreadIndex * 2);
+      render(stabilizePass + 1);
+    }
+  }
 }
 
 function refreshLayoutAndRender(preservePosition = true) {
   const anchorAbsolutePage = preservePosition ? spreadIndex * 2 : 0;
+  paginationSafetyBoostPx = 0;
   fitSpreadToViewport();
   repaginate(anchorAbsolutePage);
   render();
+}
+
+function stabilizeAndRepaginate() {
+  const run = () => {
+    if (!introFading) {
+      refreshLayoutAndRender(true);
+    }
+  };
+
+  run();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(run);
+  });
+  window.setTimeout(run, 140);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(run);
+  }
 }
 
 function goPrev() {
@@ -955,7 +1264,7 @@ function openIntroBook() {
     introClosed = false;
     introFading = false;
     introFadeOut = false;
-    render();
+    stabilizeAndRepaginate();
   }, INTRO_EXIT_MS);
 }
 
@@ -1013,11 +1322,36 @@ toggleSettingsBtn.addEventListener("click", () => {
 
 controls.addEventListener("click", (e) => {
   e.stopPropagation();
+  if (!e.target.closest("#pageToneSelect")) {
+    closePageToneOptions();
+  }
 });
 
 settingsActions.addEventListener("click", (e) => {
   e.stopPropagation();
+  closePageToneOptions();
 });
+
+if (pageToneTrigger) {
+  pageToneTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePageToneOptions();
+  });
+}
+
+if (pageToneOptions) {
+  pageToneOptions.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const toneButton = e.target.closest(".custom-select-option[data-value]");
+    if (!toneButton) {
+      return;
+    }
+    pageTone = toneButton.dataset.value || "white";
+    persistCurrentModeProfile();
+    closePageToneOptions();
+    render();
+  });
+}
 
 prevBtn.addEventListener("click", goPrev);
 nextBtn.addEventListener("click", goNext);
@@ -1032,34 +1366,54 @@ if (startReadingBtn) {
 
 fontSizeInput.addEventListener("input", (e) => {
   fontSize = Number(e.target.value);
+  persistCurrentModeProfile();
   refreshLayoutAndRender(true);
 });
 
 lineHeightInput.addEventListener("input", (e) => {
   lineHeight = Number(e.target.value);
+  persistCurrentModeProfile();
   refreshLayoutAndRender(true);
 });
 
 pagePadYInput.addEventListener("input", (e) => {
   pagePadY = Number(e.target.value);
+  persistCurrentModeProfile();
   refreshLayoutAndRender(true);
 });
 
 pagePadXInput.addEventListener("input", (e) => {
   pagePadX = Number(e.target.value);
+  persistCurrentModeProfile();
   refreshLayoutAndRender(true);
 });
 
-pageToneInput.addEventListener("change", (e) => {
-  pageTone = e.target.value;
-  render();
-});
-
 document.addEventListener("keydown", (e) => {
+  const target = e.target;
+  const tagName = target && target.tagName ? target.tagName.toLowerCase() : "";
+  const isEditableTarget = !!(
+    target &&
+    (
+      target.isContentEditable ||
+      tagName === "input" ||
+      tagName === "textarea" ||
+      tagName === "select" ||
+      tagName === "button"
+    )
+  );
+
+  if (isEditableTarget) {
+    return;
+  }
+
   if (e.key === "ArrowLeft") {
     goPrev();
   }
   if (e.key === "ArrowRight") {
+    goNext();
+  }
+  if (e.code === "Space" || e.key === " ") {
+    e.preventDefault();
     goNext();
   }
 });
@@ -1076,10 +1430,12 @@ window.addEventListener("resize", () => {
 
 document.addEventListener("fullscreenchange", () => {
   updateFullscreenButtonLabel();
+  applyModeProfile(document.fullscreenElement ? "fullscreen" : "windowed");
   refreshLayoutAndRender(true);
 });
 
 document.addEventListener("click", () => {
+  closePageToneOptions();
   if (showSettingsActions || showControls) {
     showSettingsActions = false;
     showControls = false;
@@ -1095,7 +1451,19 @@ window.addEventListener("beforeunload", () => {
 
 (async function init() {
   await loadBook();
+  modeSettingProfiles.windowed = buildProfileFromCurrent();
   initIntro3D();
   updateFullscreenButtonLabel();
   refreshLayoutAndRender(false);
 })();
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    refreshLayoutAndRender(true);
+  });
+  if (typeof document.fonts.addEventListener === "function") {
+    document.fonts.addEventListener("loadingdone", () => {
+      refreshLayoutAndRender(true);
+    });
+  }
+}

@@ -1,4 +1,5 @@
-﻿:root {
+:root {
+  --rvu: max(0.052083vw, 0.092593vh);
   --bg: #efefef;
   --panel: #ffffff;
   --line: #cfcfcf;
@@ -26,7 +27,7 @@ body {
 
 .video-shell {
   height: 100vh;
-  padding: 0 clamp(12px, 2.5vw, 28px) clamp(12px, 2.5vw, 28px);
+  padding: 0 clamp(calc(12 * var(--rvu)), 2.5vw, calc(28 * var(--rvu))) clamp(calc(12 * var(--rvu)), 2.5vw, calc(28 * var(--rvu)));
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 0;
@@ -35,12 +36,12 @@ body {
 }
 
 .video-header {
-  width: min(1240px, 96vw);
+  width: min(calc(1240 * var(--rvu)), 96vw);
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: calc(12 * var(--rvu));
 }
 
 .video-home-link {
@@ -51,35 +52,38 @@ body {
 }
 
 .video-logo {
-  height: clamp(64px, 8.2vw, 92px);
+  height: clamp(calc(64 * var(--rvu)), 8.2vw, calc(92 * var(--rvu)));
   width: auto;
 }
 
 .video-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10 * var(--rvu));
 }
 
 .video-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
+  min-height: calc(42 * var(--rvu));
+  padding: 0 calc(16 * var(--rvu));
+  border-radius: calc(12 * var(--rvu));
+  border: calc(1 * var(--rvu)) solid var(--line);
   background: var(--panel);
   color: var(--text);
-  font-size: 15px;
+  font-size: calc(15 * var(--rvu));
   font-weight: 700;
   text-decoration: none;
 }
 
 .video-main {
-  width: min(1240px, 96vw);
+  width: min(calc(1240 * var(--rvu)), 96vw);
   margin: 0 auto;
   min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -88,21 +92,32 @@ body {
 }
 
 .video-frame-wrap {
+  aspect-ratio: 16 / 9;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
   min-height: 0;
-  border-radius: 8px;
+  border-radius: calc(8 * var(--rvu));
   overflow: hidden;
   background: transparent;
 }
 
 .video-frame-wrap iframe {
+  display: block;
   width: 100%;
   height: 100%;
   border: 0;
 }
 
-@media (max-width: 860px) {
+@media (min-aspect-ratio: 16/9) {
+  .video-frame-wrap {
+    width: auto;
+    height: 100%;
+  }
+}
+
+@media (max-aspect-ratio: 43/40) {
   .video-main {
     padding: 0;
   }

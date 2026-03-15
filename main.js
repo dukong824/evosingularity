@@ -248,14 +248,27 @@ function initHome3D() {
   const basePitch = 0;
   const cameraBaseZ = 9.6;
   const cameraExitZ = 8.35;
-  const baseScale = 1.45;
+  const baseScale = 1.44;
+  const leftShiftVw = 5;
+  const rightCompensationRatio = 0.5;
+  const extraRightTravelVw = 5;
   const introBookHalfWidthX = (2.1 * baseScale) / 2;
   const introBookHalfHeightY = (2.1 * (210 / 148) * baseScale) / 2;
   const interactionHalfX = introBookHalfWidthX * 1.05;
   const interactionHalfY = introBookHalfHeightY * 1.05;
   const rootBaseX = -introBookHalfWidthX * 1.15;
   const rootBaseY = 0;
-  const rootExitX = introBookHalfWidthX * 1.02;
+  const toWorldXAtBookPlane = (pixels, stageW, stageH) => {
+    const safeW = Math.max(1, stageW);
+    const safeH = Math.max(1, stageH);
+    const fovRad = 34 * Math.PI / 180;
+    const visibleHeight = 2 * Math.tan(fovRad / 2) * cameraBaseZ;
+    const visibleWidth = visibleHeight * (safeW / safeH);
+    return pixels * (visibleWidth / safeW);
+  };
+  const viewportCompensationPx = () =>
+    window.innerWidth * ((leftShiftVw * rightCompensationRatio + extraRightTravelVw) / 100);
+  let rootExitX = introBookHalfWidthX * 1.02 + toWorldXAtBookPlane(viewportCompensationPx(), width, height);
 
   const applyPointer = (event) => {
     const rect = book3dStage.getBoundingClientRect();
@@ -359,6 +372,7 @@ function initHome3D() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    rootExitX = introBookHalfWidthX * 1.02 + toWorldXAtBookPlane(viewportCompensationPx(), w, h);
   };
 
   const resizeObserver = new ResizeObserver(handleResize);
