@@ -27,15 +27,9 @@
     </div>
   </main>
 
-  <script src="device-router.js"></script>
+  <script src="/device-router.js"></script>
   <script>
-    (function () {
-      try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.guard === "function") {
-          window.DeviceRouter.guard("mobile");
-        }
-      } catch (error) {}
-    })();
+    window.DeviceRouter?.guard("mobile");
   </script>
   <script src="mobile.js"></script>
 </body>

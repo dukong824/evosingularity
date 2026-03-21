@@ -24,15 +24,9 @@
     </section>
   </main>
 
-  <script src="device-router.js"></script>
+  <script src="/device-router.js"></script>
   <script>
-    (function () {
-      try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.guard === "function") {
-          window.DeviceRouter.guard("desktop");
-        }
-      } catch (error) {}
-    })();
+    window.DeviceRouter?.guard("desktop");
   </script>
   <script src="https://unpkg.com/three@0.160.1/build/three.min.js"></script>
   <script src="main.js"></script>

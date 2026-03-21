@@ -4,22 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>진화의 특이점</title>
-  <script src="device-router.js"></script>
+  <script src="/device-router.js"></script>
   <script>
     (function () {
       try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.redirectByDevice === "function") {
+        if (window.DeviceRouter?.redirectByDevice) {
           window.DeviceRouter.redirectByDevice();
           return;
         }
       } catch (error) {
+        console.error("DeviceRouter error:", error);
       }
-      window.location.replace("./desktop.html");
+      window.location.replace("/desktop.html");
     })();
   </script>
   <noscript>
-    <meta http-equiv="refresh" content="0; url=./desktop.html" />
+    <meta http-equiv="refresh" content="0; url=/desktop.html" />
   </noscript>
 </head>
-<body></body>
+<body>
+  페이지 이동 중...
+</body>
 </html>

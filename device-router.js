@@ -2,8 +2,8 @@
   const MOBILE_UA_PATTERN =
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const PATHS = {
-    mobile: "mobile.html",
-    desktop: "desktop.html"
+    mobile: "/mobile.html",
+    desktop: "/desktop.html"
   };
 
   function isLikelyMobileDevice() {
@@ -12,17 +12,9 @@
     return MOBILE_UA_PATTERN.test(ua) || uaDataMobile;
   }
 
-  function getAppBaseURL() {
-    const scriptTag = document.querySelector('script[src$="device-router.js"]');
-    if (scriptTag && scriptTag.src) {
-      return new URL(".", scriptTag.src);
-    }
-    return new URL(".", window.location.href);
-  }
-
   function buildTargetURL(version) {
-    const targetFile = PATHS[version] || PATHS.desktop;
-    const nextURL = new URL(targetFile, getAppBaseURL());
+    const targetPath = PATHS[version] || PATHS.desktop;
+    const nextURL = new URL(targetPath, window.location.origin);
     nextURL.search = window.location.search;
     nextURL.hash = window.location.hash;
     return nextURL;
@@ -55,19 +47,15 @@
 
   function guard(currentVersion) {
     const preferred = getPreferredVersion();
-    if (preferred === currentVersion) {
-      return;
+    if (preferred !== currentVersion) {
+      redirect(preferred);
     }
-    redirect(preferred);
   }
 
   window.DeviceRouter = {
     isLikelyMobileDevice,
     getPreferredVersion,
     redirectByDevice,
-    guard,
-    // Backward compatibility with previous calls
-    redirectFromIndex: redirectByDevice,
-    guardCurrentPage: guard
+    guard
   };
 })();
