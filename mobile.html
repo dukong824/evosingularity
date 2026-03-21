@@ -4,10 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>진화의 특이점 모바일</title>
-  <script src="device-router.js"></script>
-  <script>
-    window.DeviceRouter.guardCurrentPage("mobile");
-  </script>
   <link rel="stylesheet" href="mobile.css" />
 </head>
 <body>
@@ -31,6 +27,16 @@
     </div>
   </main>
 
+  <script src="device-router.js"></script>
+  <script>
+    (function () {
+      try {
+        if (window.DeviceRouter && typeof window.DeviceRouter.guardCurrentPage === "function") {
+          window.DeviceRouter.guardCurrentPage("mobile");
+        }
+      } catch (error) {}
+    })();
+  </script>
   <script src="mobile.js"></script>
 </body>
 </html>

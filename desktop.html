@@ -4,10 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>진화의 특이점</title>
-  <script src="device-router.js"></script>
-  <script>
-    window.DeviceRouter.guardCurrentPage("desktop");
-  </script>
   <link rel="stylesheet" href="main.css" />
 </head>
 <body>
@@ -28,6 +24,16 @@
     </section>
   </main>
 
+  <script src="device-router.js"></script>
+  <script>
+    (function () {
+      try {
+        if (window.DeviceRouter && typeof window.DeviceRouter.guardCurrentPage === "function") {
+          window.DeviceRouter.guardCurrentPage("desktop");
+        }
+      } catch (error) {}
+    })();
+  </script>
   <script src="https://unpkg.com/three@0.160.1/build/three.min.js"></script>
   <script src="main.js"></script>
 </body>
