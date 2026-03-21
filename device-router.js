@@ -1,48 +1,73 @@
 (() => {
   const MOBILE_UA_PATTERN =
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const PATHS = {
+    mobile: "mobile.html",
+    desktop: "desktop.html"
+  };
 
   function isLikelyMobileDevice() {
     const ua = navigator.userAgent || "";
-    const uaDataMobile = Boolean(
-      navigator.userAgentData && navigator.userAgentData.mobile
-    );
+    const uaDataMobile = Boolean(navigator.userAgentData?.mobile);
     return MOBILE_UA_PATTERN.test(ua) || uaDataMobile;
   }
 
-  function buildTargetURL(pathname) {
-    const nextURL = new URL(pathname, window.location.href);
-    const currentParams = new URLSearchParams(window.location.search);
-    currentParams.forEach((value, key) => nextURL.searchParams.set(key, value));
+  function getAppBaseURL() {
+    const scriptTag = document.querySelector('script[src$="device-router.js"]');
+    if (scriptTag && scriptTag.src) {
+      return new URL(".", scriptTag.src);
+    }
+    return new URL(".", window.location.href);
+  }
+
+  function buildTargetURL(version) {
+    const targetFile = PATHS[version] || PATHS.desktop;
+    const nextURL = new URL(targetFile, getAppBaseURL());
+    nextURL.search = window.location.search;
     nextURL.hash = window.location.hash;
-    return nextURL.toString();
+    return nextURL;
   }
 
   function getPreferredVersion() {
     return isLikelyMobileDevice() ? "mobile" : "desktop";
   }
 
-  function getTargetPath(version) {
-    return version === "mobile" ? "./mobile.html" : "./desktop.html";
+  function isSameLocation(nextURL) {
+    return (
+      window.location.pathname === nextURL.pathname &&
+      window.location.search === nextURL.search &&
+      window.location.hash === nextURL.hash
+    );
   }
 
-  function redirectFromIndex() {
+  function redirect(version) {
+    const nextURL = buildTargetURL(version);
+    if (isSameLocation(nextURL)) {
+      return;
+    }
+    window.location.replace(nextURL.href);
+  }
+
+  function redirectByDevice() {
     const preferred = getPreferredVersion();
-    window.location.replace(buildTargetURL(getTargetPath(preferred)));
+    redirect(preferred);
   }
 
-  function guardCurrentPage(currentVersion) {
+  function guard(currentVersion) {
     const preferred = getPreferredVersion();
     if (preferred === currentVersion) {
       return;
     }
-    window.location.replace(buildTargetURL(getTargetPath(preferred)));
+    redirect(preferred);
   }
 
   window.DeviceRouter = {
     isLikelyMobileDevice,
     getPreferredVersion,
-    redirectFromIndex,
-    guardCurrentPage
+    redirectByDevice,
+    guard,
+    // Backward compatibility with previous calls
+    redirectFromIndex: redirectByDevice,
+    guardCurrentPage: guard
   };
 })();

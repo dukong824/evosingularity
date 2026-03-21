@@ -4,19 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>진화의 특이점</title>
+  <script src="device-router.js"></script>
   <script>
     (function () {
       try {
-        var ua = navigator.userAgent || "";
-        var uaMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-        var uaDataMobile = Boolean(navigator.userAgentData && navigator.userAgentData.mobile);
-        var isMobile = uaMobile || uaDataMobile;
-        var suffix = (window.location.search || "") + (window.location.hash || "");
-        var target = isMobile ? "./mobile.html" : "./desktop.html";
-        window.location.replace(target + suffix);
+        if (window.DeviceRouter && typeof window.DeviceRouter.redirectByDevice === "function") {
+          window.DeviceRouter.redirectByDevice();
+          return;
+        }
       } catch (error) {
-        window.location.replace("./desktop.html");
       }
+      window.location.replace("./desktop.html");
     })();
   </script>
   <noscript>

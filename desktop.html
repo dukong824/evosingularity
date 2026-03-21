@@ -28,8 +28,8 @@
   <script>
     (function () {
       try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.guardCurrentPage === "function") {
-          window.DeviceRouter.guardCurrentPage("desktop");
+        if (window.DeviceRouter && typeof window.DeviceRouter.guard === "function") {
+          window.DeviceRouter.guard("desktop");
         }
       } catch (error) {}
     })();

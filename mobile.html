@@ -31,8 +31,8 @@
   <script>
     (function () {
       try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.guardCurrentPage === "function") {
-          window.DeviceRouter.guardCurrentPage("mobile");
+        if (window.DeviceRouter && typeof window.DeviceRouter.guard === "function") {
+          window.DeviceRouter.guard("mobile");
         }
       } catch (error) {}
     })();
