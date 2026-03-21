@@ -4,70 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>진화의 특이점</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: "Pretendard", "Noto Sans KR", sans-serif;
-      background: #f4f7f1;
-      color: #162018;
-    }
-    .route-fallback {
-      width: min(92vw, 420px);
-      padding: 24px;
-      border: 1px solid #d7decf;
-      border-radius: 14px;
-      background: #ffffff;
-      box-shadow: 0 8px 24px rgba(10, 24, 15, 0.08);
-      text-align: center;
-    }
-    .route-fallback h1 {
-      margin: 0 0 8px;
-      font-size: 20px;
-    }
-    .route-fallback p {
-      margin: 0 0 14px;
-      font-size: 14px;
-    }
-    .route-links {
-      display: grid;
-      gap: 8px;
-    }
-    .route-links a {
-      display: inline-block;
-      padding: 10px 12px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 700;
-      background: #163a29;
-      color: #ffffff;
-    }
-  </style>
-</head>
-<body>
-  <div class="route-fallback">
-    <h1>진화의 특이점</h1>
-    <p>자동으로 기기에 맞는 페이지로 이동 중입니다.</p>
-    <div class="route-links">
-      <a href="./desktop.html">데스크톱 버전 열기</a>
-      <a href="./mobile.html">모바일 버전 열기</a>
-    </div>
-  </div>
-
-  <script src="device-router.js"></script>
   <script>
     (function () {
       try {
-        if (window.DeviceRouter && typeof window.DeviceRouter.redirectFromIndex === "function") {
-          window.DeviceRouter.redirectFromIndex();
-          return;
-        }
-      } catch (error) {}
-
-      window.location.replace("./desktop.html");
+        var ua = navigator.userAgent || "";
+        var uaMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        var coarsePointer =
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(pointer: coarse)").matches;
+        var touchPoints = navigator.maxTouchPoints || 0;
+        var screenWidth =
+          window.screen && typeof window.screen.width === "number"
+            ? window.screen.width
+            : window.innerWidth || 0;
+        var viewportWidth = window.innerWidth || screenWidth;
+        var smallViewport = Math.min(viewportWidth, screenWidth) <= 900;
+        var isMobile = uaMobile || (coarsePointer && smallViewport) || (touchPoints > 1 && smallViewport);
+        var suffix = (window.location.search || "") + (window.location.hash || "");
+        var target = isMobile ? "./mobile.html" : "./desktop.html";
+        window.location.replace(target + suffix);
+      } catch (error) {
+        window.location.replace("./desktop.html");
+      }
     })();
   </script>
-</body>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=./desktop.html" />
+  </noscript>
+</head>
+<body></body>
 </html>
