@@ -4,18 +4,10 @@
 
   function isLikelyMobileDevice() {
     const ua = navigator.userAgent || "";
-    const touchPoints = navigator.maxTouchPoints || 0;
-    const coarsePointer =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(pointer: coarse)").matches;
-    const screenWidth =
-      window.screen && typeof window.screen.width === "number"
-        ? window.screen.width
-        : window.innerWidth || 0;
-    const viewportWidth = window.innerWidth || screenWidth;
-    const smallViewport = Math.min(viewportWidth, screenWidth) <= 900;
-
-    return MOBILE_UA_PATTERN.test(ua) || (coarsePointer && smallViewport) || (touchPoints > 1 && smallViewport);
+    const uaDataMobile = Boolean(
+      navigator.userAgentData && navigator.userAgentData.mobile
+    );
+    return MOBILE_UA_PATTERN.test(ua) || uaDataMobile;
   }
 
   function buildTargetURL(pathname) {
