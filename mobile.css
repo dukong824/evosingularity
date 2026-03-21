@@ -1,0 +1,126 @@
+:root {
+  --bg-a: #f6f7f2;
+  --bg-b: #e4ead9;
+  --ink: #161d18;
+  --line: #d2d8ca;
+  --card: rgba(255, 255, 255, 0.9);
+  --cta: #163a29;
+  --cta-hover: #102d20;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 85% at 0% -20%, rgba(255, 255, 255, 0.94) 0%, transparent 60%),
+    radial-gradient(110% 70% at 100% -5%, rgba(196, 213, 186, 0.65) 0%, transparent 62%),
+    linear-gradient(180deg, var(--bg-a), var(--bg-b));
+}
+
+.mobile-shell {
+  min-height: 100dvh;
+  padding: clamp(18px, 6vw, 30px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(18px, 5vh, 36px);
+}
+
+.mobile-brand-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: max(env(safe-area-inset-top), 4px);
+  animation: rise-in 460ms ease-out both;
+}
+
+.mobile-brand {
+  width: min(88vw, 360px);
+  height: auto;
+}
+
+.mobile-caption {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.mobile-cover-panel {
+  width: min(92vw, 470px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(12px, 3.5vw, 22px);
+  background: var(--card);
+  box-shadow: 0 22px 40px rgba(14, 36, 23, 0.14);
+  animation: rise-in 600ms ease-out 80ms both;
+}
+
+.mobile-cover-image {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  display: block;
+  box-shadow: 0 14px 24px rgba(11, 33, 20, 0.15);
+}
+
+.mobile-actions {
+  width: min(92vw, 470px);
+  padding-bottom: max(env(safe-area-inset-bottom), 6px);
+  animation: rise-in 620ms ease-out 150ms both;
+}
+
+.mobile-read-btn {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--cta);
+  color: #ffffff;
+  font-size: clamp(17px, 5.4vw, 21px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.mobile-read-btn:active {
+  transform: scale(0.987);
+}
+
+.mobile-read-btn:hover {
+  background: var(--cta-hover);
+}
+
+body.is-leaving .mobile-shell {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

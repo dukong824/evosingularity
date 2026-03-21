@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>진화의 특이점 모바일</title>
+  <script src="device-router.js"></script>
+  <script>
+    window.DeviceRouter.guardCurrentPage("mobile");
+  </script>
+  <link rel="stylesheet" href="mobile.css" />
+</head>
+<body>
+  <main class="mobile-shell">
+    <header class="mobile-brand-wrap">
+      <img class="mobile-brand" src="assets/logo.png" alt="진화의 특이점 로고" />
+      <p class="mobile-caption">Mobile Edition</p>
+    </header>
+
+    <section class="mobile-cover-panel">
+      <img
+        id="mobileCoverImage"
+        class="mobile-cover-image"
+        src="assets/cover-sample.png"
+        alt="진화의 특이점 표지"
+      />
+    </section>
+
+    <div class="mobile-actions">
+      <button id="mobileStartReadingBtn" class="mobile-read-btn" type="button">책 읽기</button>
+    </div>
+  </main>
+
+  <script src="mobile.js"></script>
+</body>
+</html>

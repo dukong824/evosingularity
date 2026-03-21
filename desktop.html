@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>진화의 특이점</title>
+  <script src="device-router.js"></script>
+  <script>
+    window.DeviceRouter.guardCurrentPage("desktop");
+  </script>
+  <link rel="stylesheet" href="main.css" />
+</head>
+<body>
+  <main class="home-shell">
+    <section class="home-hero">
+      <div class="home-book-pane">
+        <div id="book3dStage" class="book-3d-stage" aria-hidden="true"></div>
+      </div>
+
+      <aside class="home-actions" aria-label="메인 메뉴">
+        <div class="intro-brand">
+          <img class="intro-logo" src="assets/logo.png" alt="Ebook Reader 로고" />
+        </div>
+        <!-- <a id="watchVideoBtn" class="intro-action-link" href="./video.html">영상 시청하기</a> -->
+        <!-- <a id="buyBookBtn" class="intro-action-link" href="https://www.aladin.co.kr/" target="_blank" rel="noopener noreferrer">책 구매 페이지 링크로 가기</a> -->
+        <button id="startReadingBtn" class="intro-read-btn" type="button">책 읽기</button>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/three@0.160.1/build/three.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
