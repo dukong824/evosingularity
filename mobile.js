@@ -1,8 +1,10 @@
 const mobileCoverImage = document.getElementById("mobileCoverImage");
 const mobileStartReadingBtn = document.getElementById("mobileStartReadingBtn");
+const mobileCopyLinkBtn = document.getElementById("mobileCopyLinkBtn");
 
-const READER_URL = "./reader.html";
+const READER_URL = "./mobile-reader.html";
 const EXIT_DELAY_MS = 220;
+const SHARE_DOMAIN = "evosingularity.com";
 
 function sanitizeAssetURL(value) {
   const raw = String(value || "").trim();
@@ -59,8 +61,34 @@ function startReading() {
   }, EXIT_DELAY_MS);
 }
 
+async function copyLink() {
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(SHARE_DOMAIN);
+    } else {
+      const temp = document.createElement("textarea");
+      temp.value = SHARE_DOMAIN;
+      temp.setAttribute("readonly", "");
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+    }
+    window.alert("복사되었습니다.");
+  } catch (error) {
+    window.alert("복사에 실패했습니다.");
+  }
+}
+
 if (mobileStartReadingBtn) {
   mobileStartReadingBtn.addEventListener("click", startReading);
+}
+
+if (mobileCopyLinkBtn) {
+  mobileCopyLinkBtn.addEventListener("click", copyLink);
 }
 
 document.addEventListener("keydown", (event) => {
