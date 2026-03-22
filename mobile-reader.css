@@ -132,7 +132,10 @@ body {
 }
 
 .menu-settings-head {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(10px, 2.6vw, 14px);
   margin-bottom: clamp(8px, 2.4vw, 12px);
   padding-bottom: clamp(8px, 2.2vw, 10px);
   border-bottom: 1px solid #ededed;
@@ -142,6 +145,20 @@ body {
   margin: 0;
   font-size: clamp(15px, 4vw, 18px);
   font-weight: 700;
+}
+
+.menu-settings-reset {
+  border: 1px solid #dddddd;
+  border-radius: clamp(8px, 2.2vw, 10px);
+  background: #ffffff;
+  color: #555555;
+  font-family: inherit;
+  font-size: clamp(11px, 3.2vw, 13px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  padding: clamp(7px, 2vw, 9px) clamp(8px, 2.4vw, 11px);
+  cursor: pointer;
 }
 
 @keyframes menu-sheet-up {

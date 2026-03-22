@@ -6,6 +6,7 @@ const menuBackdrop = document.getElementById("mobileReaderMenuBackdrop");
 const menuQuickView = document.getElementById("mobileReaderMenuQuick");
 const openSettingsBtn = document.getElementById("mobileReaderOpenSettingsBtn");
 const settingsPanel = document.getElementById("mobileReaderSettings");
+const resetSettingsBtn = document.getElementById("mobileReaderResetSettingsBtn");
 const fontSizeInput = document.getElementById("fontSizeInput");
 const lineHeightInput = document.getElementById("lineHeightInput");
 const sidePaddingInput = document.getElementById("sidePaddingInput");
@@ -34,7 +35,7 @@ function getResponsiveDefaults() {
   return {
     fontSize: clamp(Math.round(18 * ratio), 14, 26),
     lineHeight: 1.9,
-    sidePadding: clamp(Math.round(30 * ratio), 12, 80)
+    sidePadding: clamp(Math.round(35 * ratio), 12, 80)
   };
 }
 
@@ -99,6 +100,20 @@ function loadReaderSettings() {
   } catch (error) {
     return null;
   }
+}
+
+function clearSavedReaderSettings() {
+  try {
+    localStorage.removeItem(READER_SETTINGS_KEY);
+  } catch (error) {
+    // ignore storage errors
+  }
+}
+
+function resetReaderSettings() {
+  hasManualSettings = false;
+  clearSavedReaderSettings();
+  applyReaderSettings(getResponsiveDefaults());
 }
 
 function closeSettingsPanel() {
@@ -403,6 +418,9 @@ function bindReaderSettings() {
   }
   if (menuBackdrop) {
     menuBackdrop.addEventListener("click", closeQuickMenu);
+  }
+  if (resetSettingsBtn) {
+    resetSettingsBtn.addEventListener("click", resetReaderSettings);
   }
 
   const handleInputChange = () => {
