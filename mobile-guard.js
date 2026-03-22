@@ -1,0 +1,1 @@
+window.DeviceRouter?.guard("mobile");
