@@ -2,8 +2,8 @@
   const MOBILE_UA_PATTERN =
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const PATHS = {
-    mobile: "/mobile.html",
-    desktop: "/desktop.html"
+    mobile: "mobile.html",
+    desktop: "desktop.html"
   };
 
   function isLikelyMobileDevice() {
@@ -13,8 +13,13 @@
   }
 
   function buildTargetURL(version) {
-    const targetPath = PATHS[version] || PATHS.desktop;
-    const nextURL = new URL(targetPath, window.location.origin);
+    const targetFile = PATHS[version] || PATHS.desktop;
+    const scriptTag = document.querySelector('script[src$="device-router.js"]');
+    const baseURL =
+      scriptTag && scriptTag.src
+        ? new URL(".", scriptTag.src)
+        : new URL(".", window.location.href);
+    const nextURL = new URL(targetFile, baseURL);
     nextURL.search = window.location.search;
     nextURL.hash = window.location.hash;
     return nextURL;
