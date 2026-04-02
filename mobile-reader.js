@@ -4,6 +4,7 @@ const settingsBtn = document.getElementById("mobileReaderSettingsBtn");
 const menuSheet = document.getElementById("mobileReaderMenuSheet");
 const menuBackdrop = document.getElementById("mobileReaderMenuBackdrop");
 const menuQuickView = document.getElementById("mobileReaderMenuQuick");
+const homeBtn = document.getElementById("mobileReaderHomeBtn");
 const openSettingsBtn = document.getElementById("mobileReaderOpenSettingsBtn");
 const settingsPanel = document.getElementById("mobileReaderSettings");
 const resetSettingsBtn = document.getElementById("mobileReaderResetSettingsBtn");
@@ -22,6 +23,15 @@ const FALLBACK_BOOK = {
   ]
 };
 const READER_SETTINGS_KEY = "mobile_reader_settings_v1";
+const MAX_BOOK_JSON_CHARS = 2_000_000;
+const BOOK_SAFETY_LIMITS = Object.freeze({
+  maxBlocks: 600,
+  maxTextCharsPerBlock: 12000,
+  maxChapterChars: 240,
+  maxCaptionChars: 600,
+  maxAltChars: 300,
+  maxTotalTextChars: 400000
+});
 let hasManualSettings = false;
 
 function clamp(value, min, max) {
@@ -182,6 +192,108 @@ function sanitizeAssetURL(value) {
   return raw;
 }
 
+function clampSafeText(value, maxChars) {
+  if (!Number.isFinite(maxChars) || maxChars <= 0) {
+    return "";
+  }
+  return String(value ?? "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxChars);
+}
+
+function enforceBookSafetyLimits(book) {
+  const safe = {
+    title:
+      clampSafeText(book?.title || FALLBACK_BOOK.title, BOOK_SAFETY_LIMITS.maxChapterChars) ||
+      FALLBACK_BOOK.title,
+    blocks: []
+  };
+
+  const sourceBlocks = Array.isArray(book?.blocks) ? book.blocks : [];
+  let remainingTextChars = BOOK_SAFETY_LIMITS.maxTotalTextChars;
+
+  for (const block of sourceBlocks) {
+    if (!block || typeof block !== "object") {
+      continue;
+    }
+    if (safe.blocks.length >= BOOK_SAFETY_LIMITS.maxBlocks || remainingTextChars <= 0) {
+      break;
+    }
+
+    if (block.type === "image") {
+      const src = sanitizeAssetURL(block.src || "");
+      if (!src) {
+        continue;
+      }
+      safe.blocks.push({
+        type: "image",
+        src,
+        mode: block.mode === "inline" ? "inline" : "full",
+        alt: clampSafeText(block.alt || "", BOOK_SAFETY_LIMITS.maxAltChars),
+        caption: clampSafeText(block.caption || "", BOOK_SAFETY_LIMITS.maxCaptionChars)
+      });
+      continue;
+    }
+
+    if (block.type === "chapter") {
+      const titleRaw = clampSafeText(block.title || "", BOOK_SAFETY_LIMITS.maxChapterChars);
+      const title = titleRaw.slice(0, remainingTextChars);
+      if (!title) {
+        continue;
+      }
+      remainingTextChars -= title.length;
+      safe.blocks.push({ type: "chapter", title });
+      continue;
+    }
+
+    if (block.type === "quote") {
+      const textRaw = clampSafeText(
+        block.text || block.quote || "",
+        BOOK_SAFETY_LIMITS.maxTextCharsPerBlock
+      );
+      const text = textRaw.slice(0, remainingTextChars);
+      if (!text) {
+        continue;
+      }
+      remainingTextChars -= text.length;
+      safe.blocks.push({
+        type: "quote",
+        text,
+        author: clampSafeText(
+          block.author || block.name || block.person || "",
+          BOOK_SAFETY_LIMITS.maxChapterChars
+        )
+      });
+      continue;
+    }
+
+    const textRaw = clampSafeText(block.text || "", BOOK_SAFETY_LIMITS.maxTextCharsPerBlock);
+    const text = textRaw.slice(0, remainingTextChars);
+    if (!text) {
+      continue;
+    }
+    remainingTextChars -= text.length;
+    safe.blocks.push({ type: "text", text });
+  }
+
+  if (!safe.blocks.length) {
+    safe.blocks = FALLBACK_BOOK.blocks
+      .map((entry) => ({
+        type: entry.type || "text",
+        text: clampSafeText(entry?.text || "", BOOK_SAFETY_LIMITS.maxTextCharsPerBlock)
+      }))
+      .filter((entry) => entry.text);
+  }
+
+  if (!safe.blocks.length) {
+    safe.blocks = [{ type: "text", text: "내용을 불러올 수 없습니다." }];
+  }
+
+  return safe;
+}
+
 function normalizeBookData(raw) {
   const normalized = {
     title: String(raw?.title || raw?.tocTitle || FALLBACK_BOOK.title).trim() || FALLBACK_BOOK.title,
@@ -286,7 +398,7 @@ function normalizeBookData(raw) {
     normalized.blocks = FALLBACK_BOOK.blocks.map((entry) => ({ ...entry }));
   }
 
-  return normalized;
+  return enforceBookSafetyLimits(normalized);
 }
 
 function createTextBlock(text) {
@@ -419,6 +531,14 @@ function bindReaderSettings() {
   if (menuBackdrop) {
     menuBackdrop.addEventListener("click", closeQuickMenu);
   }
+  if (homeBtn) {
+    homeBtn.addEventListener("click", (event) => {
+      const shouldLeave = window.confirm("홈으로 이동하시겠습니까?");
+      if (!shouldLeave) {
+        event.preventDefault();
+      }
+    });
+  }
   if (resetSettingsBtn) {
     resetSettingsBtn.addEventListener("click", resetReaderSettings);
   }
@@ -476,7 +596,12 @@ async function initMobileReader() {
       throw new Error("book meta fetch failed");
     }
 
-    const raw = await response.json();
+    const rawText = await response.text();
+    if (rawText.length > MAX_BOOK_JSON_CHARS) {
+      throw new Error("book meta too large");
+    }
+
+    const raw = JSON.parse(rawText);
     const normalized = normalizeBookData(raw);
     setTitle(normalized.title);
     renderBook(normalized);

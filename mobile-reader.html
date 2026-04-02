@@ -29,35 +29,28 @@
       aria-label="메뉴 닫기"
     ></button>
     <div class="menu-sheet-panel" role="dialog" aria-modal="true" aria-label="메뉴">
-      <div id="mobileReaderMenuQuick" class="menu-sheet-view">
-        <a class="menu-sheet-action" href="./mobile.html">홈화면 가기</a>
-        <button id="mobileReaderOpenSettingsBtn" class="menu-sheet-action" type="button">페이지 설정</button>
-      </div>
-
-      <section id="mobileReaderSettings" class="menu-sheet-view hidden" aria-label="페이지 설정">
-        <div class="menu-settings-head">
-          <h2 class="menu-settings-title">페이지 설정</h2>
-          <button id="mobileReaderResetSettingsBtn" class="menu-settings-reset" type="button">기본 설정으로 초기화</button>
-        </div>
-
-        <div class="settings-item">
-          <label for="fontSizeInput">글자 크기</label>
-          <input id="fontSizeInput" type="range" min="14" max="26" step="1" value="18" />
-          <span id="fontSizeValue">18px</span>
-        </div>
-        <div class="settings-item">
-          <label for="lineHeightInput">줄 간격</label>
-          <input id="lineHeightInput" type="range" min="1.4" max="2.2" step="0.1" value="1.9" />
-          <span id="lineHeightValue">1.9</span>
-        </div>
-        <div class="settings-item">
-          <label for="sidePaddingInput">좌우 여백</label>
-          <input id="sidePaddingInput" type="range" min="12" max="80" step="1" value="35" />
-          <span id="sidePaddingValue">35px</span>
-        </div>
-      </section>
+      <a class="menu-sheet-action" href="./mobile.html">홈화면 가기</a>
+      <button id="mobileReaderOpenSettingsBtn" class="menu-sheet-action" type="button">페이지 설정</button>
     </div>
   </div>
+
+  <section id="mobileReaderSettings" class="reader-settings-panel hidden" aria-label="페이지 설정">
+    <div class="settings-item">
+      <label for="fontSizeInput">글자 크기</label>
+      <input id="fontSizeInput" type="range" min="14" max="26" step="1" value="18" />
+      <span id="fontSizeValue">18px</span>
+    </div>
+    <div class="settings-item">
+      <label for="lineHeightInput">줄 간격</label>
+      <input id="lineHeightInput" type="range" min="1.4" max="2.2" step="0.1" value="1.9" />
+      <span id="lineHeightValue">1.9</span>
+    </div>
+    <div class="settings-item">
+      <label for="sidePaddingInput">좌우 여백</label>
+      <input id="sidePaddingInput" type="range" min="12" max="80" step="1" value="30" />
+      <span id="sidePaddingValue">30px</span>
+    </div>
+  </section>
 
   <main id="mobileReader" class="mobile-reader-main" aria-live="polite">
     <p class="reader-loading">불러오는 중...</p>

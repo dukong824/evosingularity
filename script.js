@@ -18,12 +18,14 @@ let tocTitle = "목차 제목";
 let coverImageSrc = "";
 let spineImageSrc = "";
 let showControls = false;
-let showSettingsActions = false;
+let showTocPanel = false;
+let showSettingsPanel = false;
 let introClosed = true;
 let introFading = false;
 let introFadeOut = false;
 let measureEl = null;
 let paginationSafetyBoostPx = 0;
+let tocEntries = [];
 let modeSettingProfiles = {
   windowed: null,
   fullscreen: null
@@ -33,10 +35,24 @@ const MAX_PAGINATION_STABILIZE_PASSES = 8;
 const OVERFLOW_EPSILON_PX = 0.5;
 const PAGINATION_BASE_SAFETY_RATIO = 0.14;
 const PAGINATION_MAX_SAFETY_BOOST_PX = 14;
+const SETTINGS_MENU_SCROLL_UNLOCK_MS = 280;
+const MAX_BOOK_JSON_CHARS = 2_000_000;
+const BOOK_SAFETY_LIMITS = Object.freeze({
+  maxBlocks: 600,
+  maxTextCharsPerBlock: 12000,
+  maxChapterChars: 240,
+  maxCaptionChars: 600,
+  maxAltChars: 300,
+  maxTotalTextChars: 600000
+});
 
 const controls = document.getElementById("controls");
+const controlsTocPanel = document.getElementById("controlsTocPanel");
+const controlsSettingsPanel = document.getElementById("controlsSettingsPanel");
+const controlsResizeHandle = document.getElementById("controlsResizeHandle");
+const homeBtn = document.getElementById("homeBtn");
 const settingsTabBtn = document.getElementById("settingsTabBtn");
-const settingsActions = document.getElementById("settingsActions");
+const settingsMenu = document.querySelector(".settings-menu");
 const readerShell = document.getElementById("readerShell");
 const spreadWrap = document.querySelector(".spread-wrap");
 const spreadFrame = document.querySelector(".spread-frame");
@@ -54,8 +70,10 @@ const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const startReadingBtn = document.getElementById("startReadingBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
+const toggleTocBtn = document.getElementById("toggleTocBtn");
 const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
 const fullscreenIcon = document.getElementById("fullscreenIcon");
+const fullscreenLabel = document.getElementById("fullscreenLabel");
 const fontSizeInput = document.getElementById("fontSize");
 const lineHeightInput = document.getElementById("lineHeight");
 const pagePadYInput = document.getElementById("pagePadY");
@@ -65,6 +83,7 @@ const pageToneTrigger = document.getElementById("pageToneTrigger");
 const pageToneTriggerText = document.getElementById("pageToneTriggerText");
 const pageToneOptions = document.getElementById("pageToneOptions");
 const pageToneOptionButtons = Array.from(document.querySelectorAll(".custom-select-option[data-value]"));
+const tocList = document.getElementById("tocList");
 const fontSizeValue = document.getElementById("fontSizeValue");
 const lineHeightValue = document.getElementById("lineHeightValue");
 const pagePadYValue = document.getElementById("pagePadYValue");
@@ -89,8 +108,13 @@ const FULLSCREEN_PROFILE_BOOST = {
   pagePadY: 10,
   pagePadX: 10
 };
+const CONTROLS_DRAWER_WIDTH_KEY = "reader_controls_drawer_width_v1";
+const CONTROLS_DRAWER_MIN_PX = 280;
+const CONTROLS_DRAWER_MAX_PX = 560;
 
 let intro3d = null;
+let controlsDrawerWidthPx = 360;
+let settingsMenuScrollUnlockTimer = null;
 const INTRO_EXIT_MS = 1050;
 const INTRO_FADE_START_RATIO = 0.82;
 const INTRO_PREMOVE_RATIO = 0.26;
@@ -118,6 +142,84 @@ function toVmin(value) {
 
 function toPxInt(value) {
   return `${Math.round(Number(value))}px`;
+}
+
+function getControlsDrawerMaxWidth() {
+  return Math.max(
+    CONTROLS_DRAWER_MIN_PX,
+    Math.min(CONTROLS_DRAWER_MAX_PX, Math.floor(viewportWidth() * 0.72))
+  );
+}
+
+function clampControlsDrawerWidth(value) {
+  const numeric = Number(value);
+  const maxWidth = getControlsDrawerMaxWidth();
+  if (!Number.isFinite(numeric)) {
+    return Math.min(360, maxWidth);
+  }
+  return Math.max(CONTROLS_DRAWER_MIN_PX, Math.min(maxWidth, Math.round(numeric)));
+}
+
+function applyControlsDrawerWidth(value, persist = false) {
+  controlsDrawerWidthPx = clampControlsDrawerWidth(value);
+  document.documentElement.style.setProperty("--settings-drawer-width", `${controlsDrawerWidthPx}px`);
+
+  if (persist) {
+    try {
+      localStorage.setItem(CONTROLS_DRAWER_WIDTH_KEY, String(controlsDrawerWidthPx));
+    } catch (error) {
+      // ignore storage errors
+    }
+  }
+}
+
+function loadControlsDrawerWidth() {
+  let storedWidth = 360;
+  try {
+    const raw = localStorage.getItem(CONTROLS_DRAWER_WIDTH_KEY);
+    if (raw != null) {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) {
+        storedWidth = parsed;
+      }
+    }
+  } catch (error) {
+    // ignore storage errors
+  }
+  applyControlsDrawerWidth(storedWidth, false);
+}
+
+function bindControlsDrawerResize() {
+  if (!controlsResizeHandle) {
+    return;
+  }
+
+  controlsResizeHandle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    document.body.classList.add("is-resizing-panel");
+
+    const onPointerMove = (moveEvent) => {
+      const nextWidth = viewportWidth() - moveEvent.clientX;
+      applyControlsDrawerWidth(nextWidth, false);
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      document.body.classList.remove("is-resizing-panel");
+      applyControlsDrawerWidth(controlsDrawerWidthPx, true);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  });
 }
 
 function updateRangeFill(input) {
@@ -272,6 +374,138 @@ function sanitizeAssetURL(value) {
   return raw;
 }
 
+function clearSettingsMenuScrollUnlockTimer() {
+  if (settingsMenuScrollUnlockTimer) {
+    window.clearTimeout(settingsMenuScrollUnlockTimer);
+    settingsMenuScrollUnlockTimer = null;
+  }
+}
+
+function setSettingsMenuScrollReady(isReady) {
+  if (!settingsMenu) {
+    return;
+  }
+  settingsMenu.classList.toggle("is-scroll-ready", isReady);
+}
+
+function scheduleSettingsMenuScrollUnlock() {
+  if (!settingsMenu) {
+    return;
+  }
+  clearSettingsMenuScrollUnlockTimer();
+  setSettingsMenuScrollReady(false);
+  settingsMenuScrollUnlockTimer = window.setTimeout(() => {
+    settingsMenuScrollUnlockTimer = null;
+    if (showControls) {
+      setSettingsMenuScrollReady(true);
+    }
+  }, SETTINGS_MENU_SCROLL_UNLOCK_MS);
+}
+
+function clampSafeText(value, maxChars) {
+  if (!Number.isFinite(maxChars) || maxChars <= 0) {
+    return "";
+  }
+  return String(value ?? "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxChars);
+}
+
+function enforceBookSafetyLimits(book) {
+  const safe = {
+    tocTitle:
+      clampSafeText(book?.tocTitle || FALLBACK_BOOK.tocTitle, BOOK_SAFETY_LIMITS.maxChapterChars) ||
+      FALLBACK_BOOK.tocTitle,
+    coverImage: sanitizeAssetURL(book?.coverImage || ""),
+    spineImage: sanitizeAssetURL(book?.spineImage || ""),
+    blocks: []
+  };
+
+  const sourceBlocks = Array.isArray(book?.blocks) ? book.blocks : [];
+  let remainingTextChars = BOOK_SAFETY_LIMITS.maxTotalTextChars;
+
+  for (const block of sourceBlocks) {
+    if (!block || typeof block !== "object") {
+      continue;
+    }
+    if (safe.blocks.length >= BOOK_SAFETY_LIMITS.maxBlocks || remainingTextChars <= 0) {
+      break;
+    }
+
+    if (block.type === "image") {
+      const src = sanitizeAssetURL(block.src || "");
+      if (!src) {
+        continue;
+      }
+      safe.blocks.push({
+        type: "image",
+        src,
+        alt: clampSafeText(block.alt || "", BOOK_SAFETY_LIMITS.maxAltChars),
+        caption: clampSafeText(block.caption || "", BOOK_SAFETY_LIMITS.maxCaptionChars),
+        mode: block.mode === "full" ? "full" : "inline"
+      });
+      continue;
+    }
+
+    if (block.type === "chapter") {
+      const titleRaw = clampSafeText(block.title || "", BOOK_SAFETY_LIMITS.maxChapterChars);
+      const title = titleRaw.slice(0, remainingTextChars);
+      if (!title) {
+        continue;
+      }
+      remainingTextChars -= title.length;
+      safe.blocks.push({ type: "chapter", title });
+      continue;
+    }
+
+    if (block.type === "quote") {
+      const textRaw = clampSafeText(
+        block.text || block.quote || "",
+        BOOK_SAFETY_LIMITS.maxTextCharsPerBlock
+      );
+      const text = textRaw.slice(0, remainingTextChars);
+      if (!text) {
+        continue;
+      }
+      remainingTextChars -= text.length;
+      safe.blocks.push({
+        type: "quote",
+        text,
+        author: clampSafeText(
+          block.author || block.name || block.person || "",
+          BOOK_SAFETY_LIMITS.maxChapterChars
+        )
+      });
+      continue;
+    }
+
+    const textRaw = clampSafeText(block.text || "", BOOK_SAFETY_LIMITS.maxTextCharsPerBlock);
+    const text = textRaw.slice(0, remainingTextChars);
+    if (!text) {
+      continue;
+    }
+    remainingTextChars -= text.length;
+    safe.blocks.push({ type: "text", text });
+  }
+
+  if (!safe.blocks.length) {
+    safe.blocks = FALLBACK_BOOK.content
+      .map((entry) => ({
+        type: "text",
+        text: clampSafeText(entry?.text || "", BOOK_SAFETY_LIMITS.maxTextCharsPerBlock)
+      }))
+      .filter((entry) => entry.text);
+  }
+
+  if (!safe.blocks.length) {
+    safe.blocks = [{ type: "text", text: "내용이 없습니다." }];
+  }
+
+  return safe;
+}
+
 function blockToHTML(block) {
   if (!block) {
     return "";
@@ -362,7 +596,7 @@ function getElementInnerSize(el) {
 }
 
 function fitSpreadToViewport() {
-  if (!spreadWrap || !spread || window.matchMedia("(max-aspect-ratio: 43/40)").matches) {
+  if (!spreadWrap || !spread) {
     spread.style.width = "";
     spread.style.height = "";
     return;
@@ -872,7 +1106,7 @@ function normalizeBookData(raw) {
     result.blocks = FALLBACK_BOOK.content.map((b) => ({ ...b }));
   }
 
-  return result;
+  return enforceBookSafetyLimits(result);
 }
 
 function loadImageMeta(src) {
@@ -911,7 +1145,12 @@ async function loadBook() {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    if (rawText.length > MAX_BOOK_JSON_CHARS) {
+      throw new Error("book meta too large");
+    }
+
+    const data = JSON.parse(rawText);
     const normalized = normalizeBookData(data);
     tocTitle = normalized.tocTitle;
     coverImageSrc = normalized.coverImage;
@@ -1003,6 +1242,73 @@ function findFittingTextCut(text, currentBlocks, pageWidth, pageHeight) {
   return chooseTextCutBoundary(text, best);
 }
 
+function refreshTocEntries() {
+  const entries = [];
+  const seenTitles = new Set();
+
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+    const page = pages[pageIndex];
+    if (!page || !Array.isArray(page.blocks)) {
+      continue;
+    }
+
+    for (const block of page.blocks) {
+      if (!block || block.type !== "chapter") {
+        continue;
+      }
+      const title = String(block.title || "").trim();
+      if (!title || seenTitles.has(title)) {
+        continue;
+      }
+      seenTitles.add(title);
+      entries.push({ title, pageIndex });
+    }
+  }
+
+  if (!entries.length) {
+    entries.push({
+      title: String(tocTitle || FALLBACK_BOOK.tocTitle).trim() || FALLBACK_BOOK.tocTitle,
+      pageIndex: 0
+    });
+  }
+
+  tocEntries = entries;
+}
+
+function renderTocList() {
+  if (!tocList) {
+    return;
+  }
+
+  const currentLeftPageIndex = Math.max(0, spreadIndex * 2);
+  tocList.innerHTML = "";
+
+  tocEntries.forEach((entry, index) => {
+    const nextEntry = tocEntries[index + 1];
+    const isActive =
+      currentLeftPageIndex >= entry.pageIndex &&
+      (!nextEntry || currentLeftPageIndex < nextEntry.pageIndex);
+
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "toc-item";
+    if (isActive) {
+      item.classList.add("is-active");
+    }
+    item.textContent = entry.title;
+    item.addEventListener("click", () => {
+      spreadIndex = Math.floor(Math.max(0, entry.pageIndex) / 2);
+      showControls = false;
+      showTocPanel = false;
+      showSettingsPanel = false;
+      closePageToneOptions();
+      render();
+    });
+
+    tocList.appendChild(item);
+  });
+}
+
 function repaginate(anchorAbsolutePage = 0) {
   const innerSize = getElementInnerSize(leftContent);
   const pageWidth = innerSize.width;
@@ -1072,6 +1378,7 @@ function repaginate(anchorAbsolutePage = 0) {
 
   const totalSpreads = Math.max(1, Math.ceil(pages.length / 2));
   spreadIndex = Math.min(Math.floor(anchorAbsolutePage / 2), totalSpreads - 1);
+  refreshTocEntries();
 }
 
 function getSpreadPages(allPages, currentSpreadIndex) {
@@ -1163,11 +1470,36 @@ function render(stabilizePass = 0) {
   prevBtn.disabled = introClosed || introFading || spreadIndex === 0;
   nextBtn.disabled = introFading || (!introClosed && spreadIndex >= totalSpreads - 1);
   controls.classList.toggle("hidden", !showControls);
+  if (settingsMenu) {
+    settingsMenu.classList.toggle("is-open", showControls);
+    if (!showControls) {
+      setSettingsMenuScrollReady(false);
+    }
+  }
+  if (controlsTocPanel) {
+    const isTocOpen = showControls && showTocPanel;
+    controlsTocPanel.classList.toggle("is-open", isTocOpen);
+    controlsTocPanel.setAttribute("aria-hidden", isTocOpen ? "false" : "true");
+  }
+  if (controlsSettingsPanel) {
+    const isSettingsOpen = showControls && showSettingsPanel;
+    controlsSettingsPanel.classList.toggle("is-open", isSettingsOpen);
+    controlsSettingsPanel.setAttribute("aria-hidden", isSettingsOpen ? "false" : "true");
+  }
   if (!showControls) {
     closePageToneOptions();
   }
-  settingsActions.classList.toggle("is-open", showSettingsActions);
-  settingsTabBtn.setAttribute("aria-expanded", showSettingsActions ? "true" : "false");
+  if (!showSettingsPanel) {
+    closePageToneOptions();
+  }
+  settingsTabBtn.setAttribute("aria-expanded", showControls ? "true" : "false");
+  if (toggleTocBtn) {
+    toggleTocBtn.setAttribute("aria-expanded", showControls && showTocPanel ? "true" : "false");
+  }
+  if (toggleSettingsBtn) {
+    toggleSettingsBtn.setAttribute("aria-expanded", showControls && showSettingsPanel ? "true" : "false");
+  }
+  renderTocList();
   syncPageToneControl();
   document.documentElement.style.setProperty("--paper", PAGE_TONE_MAP[pageTone] || PAGE_TONE_MAP.default);
   document.documentElement.style.setProperty("--page-pad-y", toVh(pagePadY));
@@ -1285,6 +1617,9 @@ function updateFullscreenButtonLabel() {
   if (fullscreenIcon) {
     fullscreenIcon.src = isFullscreen ? "./assets/shrinkicon.png" : "./assets/fullicon.png";
   }
+  if (fullscreenLabel) {
+    fullscreenLabel.textContent = isFullscreen ? "창 모드" : "전체화면";
+  }
   fullscreenBtn.setAttribute("aria-label", isFullscreen ? "창 모드" : "전체화면");
   fullscreenBtn.title = isFullscreen ? "창 모드" : "전체화면";
 }
@@ -1305,31 +1640,61 @@ async function toggleFullscreen() {
 
 fullscreenBtn.addEventListener("click", toggleFullscreen);
 
+if (homeBtn) {
+  homeBtn.addEventListener("click", (event) => {
+    const shouldLeave = window.confirm("정말 돌아가시겠습니까?");
+    if (!shouldLeave) {
+      event.preventDefault();
+    }
+  });
+}
+
 settingsTabBtn.addEventListener("click", (e) => {
   e.stopPropagation();
-  showSettingsActions = !showSettingsActions;
-  if (!showSettingsActions) {
-    showControls = false;
+  const willOpen = !showControls;
+  showControls = willOpen;
+  if (willOpen) {
+    scheduleSettingsMenuScrollUnlock();
+  } else {
+    clearSettingsMenuScrollUnlockTimer();
+    setSettingsMenuScrollReady(false);
+  }
+  if (!willOpen) {
+    showTocPanel = false;
+    showSettingsPanel = false;
+    closePageToneOptions();
   }
   render();
 });
 
-toggleSettingsBtn.addEventListener("click", () => {
-  showSettingsActions = true;
-  showControls = !showControls;
-  render();
-});
+if (toggleTocBtn) {
+  toggleTocBtn.addEventListener("click", () => {
+    if (!showControls) {
+      showControls = true;
+      scheduleSettingsMenuScrollUnlock();
+    }
+    showTocPanel = !showTocPanel;
+    closePageToneOptions();
+    render();
+  });
+}
+
+if (toggleSettingsBtn) {
+  toggleSettingsBtn.addEventListener("click", () => {
+    if (!showControls) {
+      showControls = true;
+      scheduleSettingsMenuScrollUnlock();
+    }
+    showSettingsPanel = !showSettingsPanel;
+    render();
+  });
+}
 
 controls.addEventListener("click", (e) => {
   e.stopPropagation();
   if (!e.target.closest("#pageToneSelect")) {
     closePageToneOptions();
   }
-});
-
-settingsActions.addEventListener("click", (e) => {
-  e.stopPropagation();
-  closePageToneOptions();
 });
 
 if (pageToneTrigger) {
@@ -1436,14 +1801,18 @@ document.addEventListener("fullscreenchange", () => {
 
 document.addEventListener("click", () => {
   closePageToneOptions();
-  if (showSettingsActions || showControls) {
-    showSettingsActions = false;
+  if (showControls) {
+    clearSettingsMenuScrollUnlockTimer();
+    setSettingsMenuScrollReady(false);
     showControls = false;
+    showTocPanel = false;
+    showSettingsPanel = false;
     render();
   }
 });
 
 window.addEventListener("beforeunload", () => {
+  clearSettingsMenuScrollUnlockTimer();
   if (intro3d?.cleanup) {
     intro3d.cleanup();
   }

@@ -248,15 +248,14 @@ function initHome3D() {
   const basePitch = 0;
   const cameraBaseZ = 9.6;
   const cameraExitZ = 8.35;
-  const baseScale = 1.44;
+  const baseScaleBase = 1.44;
   const leftShiftVw = 5;
   const rightCompensationRatio = 0.5;
   const extraRightTravelVw = 2.5;
-  const introBookHalfWidthX = (2.1 * baseScale) / 2;
-  const introBookHalfHeightY = (2.1 * (210 / 148) * baseScale) / 2;
-  const interactionHalfX = introBookHalfWidthX * 1.05;
-  const interactionHalfY = introBookHalfHeightY * 1.05;
-  const rootBaseX = -introBookHalfWidthX * 1.15;
+  let baseScale = baseScaleBase;
+  let introBookHalfWidthX = (2.1 * baseScale) / 2;
+  let introBookHalfHeightY = (2.1 * (210 / 148) * baseScale) / 2;
+  let rootBaseX = -introBookHalfWidthX * 1.15;
   const rootBaseY = 0;
   const toWorldXAtBookPlane = (pixels, stageW, stageH) => {
     const safeW = Math.max(1, stageW);
@@ -269,6 +268,21 @@ function initHome3D() {
   const viewportCompensationPx = () =>
     window.innerWidth * ((leftShiftVw * rightCompensationRatio + extraRightTravelVw) / 100);
   let rootExitX = introBookHalfWidthX * 1.02 + toWorldXAtBookPlane(viewportCompensationPx(), width, height);
+  let object3d = null;
+
+  const updateBookLayout = (stageW, stageH) => {
+    baseScale = baseScaleBase;
+    introBookHalfWidthX = (2.1 * baseScale) / 2;
+    introBookHalfHeightY = (2.1 * (210 / 148) * baseScale) / 2;
+    rootBaseX = -introBookHalfWidthX * 1.15;
+    rootExitX = introBookHalfWidthX * 1.02 + toWorldXAtBookPlane(viewportCompensationPx(), stageW, stageH);
+
+    if (object3d) {
+      object3d.scale.set(baseScale, baseScale, baseScale);
+    }
+
+    root.position.set(rootBaseX, rootBaseY, 0);
+  };
 
   const applyPointer = (event) => {
     const rect = book3dStage.getBoundingClientRect();
@@ -278,8 +292,6 @@ function initHome3D() {
     const nx = (event.clientX - rect.left) / w * 2 - 1;
     const ny = -((event.clientY - rect.top) / h * 2 - 1);
 
-    // 책이 뷰포트에서 얼마나 왼쪽에 있는지 오프셋
-    // rootBaseX = -introBookHalfWidthX * 1.15, camera.position.z = 9.6, fov = 34
     const fovRad = 34 * Math.PI / 180;
     const visibleWidth = 2 * Math.tan(fovRad / 2) * 9.6;
     const bookOffsetNdc = rootBaseX / (visibleWidth / 2);
@@ -287,7 +299,7 @@ function initHome3D() {
     target.y = (nx - bookOffsetNdc) * 0.42;
     target.x = ny * 0.36;
   };
-  
+
   const resetPointer = () => {
     target.x = 0;
     target.y = 0;
@@ -303,7 +315,7 @@ function initHome3D() {
   window.addEventListener("pointerout", handlePointerOut);
   window.addEventListener("blur", resetPointer);
 
-  const object3d = createBookCuboidA5(THREE);
+  object3d = createBookCuboidA5(THREE);
   object3d.scale.set(baseScale, baseScale, baseScale);
   root.add(object3d);
 
@@ -312,12 +324,7 @@ function initHome3D() {
   const baseCenter = new THREE.Vector3();
   baseBox.getCenter(baseCenter);
   object3d.position.x -= baseCenter.x;
-  root.position.set(rootBaseX, rootBaseY, 0);
-
-  // initHome3D() 안에서 root.position.set() 직후에 한 번만 계산
-  scene.updateMatrixWorld(true);
-  const bookNdcX = new THREE.Vector3(rootBaseX, rootBaseY, 0).project(camera).x;
-  const bookNdcY = 0; // Y는 0으로 고정
+  updateBookLayout(width, height);
 
   const state = {
     active: true,
@@ -335,7 +342,6 @@ function initHome3D() {
     if (state.exiting) {
       const elapsed = performance.now() - state.exitStart;
       const t = Math.min(1, elapsed / INTRO_EXIT_MS);
-      // First move right only, then scale/zoom and open.
       const movePhase = Math.min(1, t / INTRO_MOVE_ONLY_RATIO);
       const revealPhase = Math.max(0, Math.min(1, (t - INTRO_MOVE_ONLY_RATIO) / (1 - INTRO_MOVE_ONLY_RATIO)));
       const easeMove = 1 - Math.pow(1 - movePhase, 3);
@@ -372,7 +378,7 @@ function initHome3D() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
-    rootExitX = introBookHalfWidthX * 1.02 + toWorldXAtBookPlane(viewportCompensationPx(), w, h);
+    updateBookLayout(w, h);
   };
 
   const resizeObserver = new ResizeObserver(handleResize);
