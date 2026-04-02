@@ -30,7 +30,7 @@ body {
 .mobile-shell {
   height: 100dvh;
   padding:
-    clamp(10px, 3.2vh, 20px)
+    max(calc(env(safe-area-inset-top) + 40px), clamp(72px, 15.2vh, 112px))
     clamp(14px, 4.6vw, 24px)
     max(calc(env(safe-area-inset-bottom) + 8px), 12px);
   display: flex;
@@ -41,32 +41,17 @@ body {
   overflow: hidden;
 }
 
-.mobile-brand-wrap {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  margin-top: calc(max(env(safe-area-inset-top), 4px) + var(--mobile-gap-unit));
-  margin-bottom: var(--mobile-gap-unit);
-  animation: rise-in 460ms ease-out both;
-}
-
-.mobile-brand {
-  width: min(52vw, 210px);
-  height: auto;
-}
-
 .mobile-cover-image {
-  width: min(90vw, 450px);
+  width: 100%;
+  max-width: 520px;
   max-height: min(
-    50vh,
-    calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - clamp(230px, 36vh, 300px))
+    62vh,
+    calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - clamp(170px, 24vh, 220px))
   );
   height: auto;
   border-radius: 12px;
   display: block;
-  margin: 0 auto;
+  margin: clamp(8px, 2vh, 16px) auto 0;
   box-shadow: none;
   object-fit: contain;
   animation: rise-in 600ms ease-out 80ms both;
@@ -93,7 +78,8 @@ body {
 }
 
 .mobile-actions {
-  width: min(92vw, 470px);
+  width: 100%;
+  max-width: 470px;
   display: grid;
   gap: 10px;
   margin-top: 0;
@@ -146,21 +132,17 @@ body {
 
   .mobile-shell {
     padding:
-      clamp(8px, 2.2vh, 14px)
+      max(calc(env(safe-area-inset-top) + 32px), clamp(56px, 11.2vh, 80px))
       clamp(12px, 4vw, 20px)
       max(calc(env(safe-area-inset-bottom) + 6px), 10px);
     gap: clamp(5px, 1.4vh, 10px);
   }
 
-  .mobile-brand {
-    width: min(46vw, 175px);
-  }
-
   .mobile-cover-image {
-    width: min(86vw, 390px);
+    max-width: 450px;
     max-height: min(
-      42vh,
-      calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 250px)
+      54vh,
+      calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 190px)
     );
   }
 
@@ -179,15 +161,11 @@ body {
     --mobile-gap-unit: clamp(4px, 1vh, 7px);
   }
 
-  .mobile-brand {
-    width: min(41vw, 154px);
-  }
-
   .mobile-cover-image {
-    width: min(80vw, 340px);
+    max-width: 380px;
     max-height: min(
-      36vh,
-      calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 240px)
+      46vh,
+      calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 180px)
     );
   }
 
