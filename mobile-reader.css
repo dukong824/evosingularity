@@ -122,6 +122,8 @@ body {
   bottom: 0;
   max-height: min(78vh, 600px);
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding:
     clamp(12px, 3.6vw, 16px)
     clamp(14px, 4.2vw, 20px)
@@ -213,8 +215,9 @@ body {
 }
 
 .menu-sheet-subpanel.is-open {
-  max-height: var(--menu-subpanel-max-height);
+  max-height: none;
   opacity: 1;
+  overflow: visible;
   pointer-events: auto;
   transform: translateY(0);
   padding:
@@ -443,7 +446,7 @@ body {
 .paragraph {
   margin: 0 0 0.85em;
   text-align: justify;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   white-space: pre-line;
   word-break: break-word;
 }
@@ -603,7 +606,7 @@ body {
   justify-content: center;
   font-size: var(--reader-nav-label-size);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .mobile-reader-nav-btn:active {
@@ -630,4 +633,46 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+.mobile-reader-page {
+  padding: 0;
+  background: #f4f4f4;
+}
+
+.mobile-reader-page-content {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+}
+
+.pdf-page-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.menu-sheet-toc-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(10px, 2.6vw, 14px);
+}
+
+.menu-sheet-toc-title {
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.menu-sheet-toc-page {
+  color: #777777;
+  font-size: var(--menu-font-meta);
+  font-weight: 600;
+  white-space: nowrap;
 }

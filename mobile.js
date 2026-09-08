@@ -5,6 +5,22 @@ const mobileCopyLinkBtn = document.getElementById("mobileCopyLinkBtn");
 const READER_URL = "./mobile-reader.html";
 const EXIT_DELAY_MS = 220;
 const SHARE_DOMAIN = "evosingularity.com";
+const MAX_BOOK_JSON_CHARS = 2_000_000;
+
+let isLeaving = false;
+
+function parseBookMetaText(rawText) {
+  if (typeof rawText !== "string" || rawText.length > MAX_BOOK_JSON_CHARS) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawText);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 function sanitizeAssetURL(value) {
   const raw = String(value || "").trim();
@@ -44,7 +60,11 @@ async function loadMobileCover() {
       return;
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    const data = parseBookMetaText(rawText);
+    if (!data) {
+      return;
+    }
     const coverImage = sanitizeAssetURL(data?.coverImage || data?.cover || "");
     if (coverImage) {
       mobileCoverImage.src = coverImage;
@@ -55,6 +75,11 @@ async function loadMobileCover() {
 }
 
 function startReading() {
+  if (isLeaving) {
+    return;
+  }
+
+  isLeaving = true;
   document.body.classList.add("is-leaving");
   window.setTimeout(() => {
     window.location.href = READER_URL;
@@ -62,11 +87,13 @@ function startReading() {
 }
 
 async function copyLink() {
+  let temp = null;
+
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       await navigator.clipboard.writeText(SHARE_DOMAIN);
     } else {
-      const temp = document.createElement("textarea");
+      temp = document.createElement("textarea");
       temp.value = SHARE_DOMAIN;
       temp.setAttribute("readonly", "");
       temp.style.position = "fixed";
@@ -74,12 +101,18 @@ async function copyLink() {
       document.body.appendChild(temp);
       temp.focus();
       temp.select();
-      document.execCommand("copy");
-      document.body.removeChild(temp);
+      temp.setSelectionRange(0, temp.value.length);
+      if (!document.execCommand("copy")) {
+        throw new Error("copy command failed");
+      }
     }
     window.alert("복사되었습니다.");
   } catch (error) {
     window.alert("복사에 실패했습니다.");
+  } finally {
+    if (temp?.parentNode) {
+      temp.parentNode.removeChild(temp);
+    }
   }
 }
 
