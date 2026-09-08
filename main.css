@@ -143,9 +143,15 @@ body {
 }
 
 .intro-read-btn {
+  min-height: calc(158 * var(--rvu) * var(--home-ui-scale));
   border: 0;
   background: #000000;
   color: #ffffff;
+  font-size: calc(20 * var(--rvu) * var(--home-ui-scale));
+}
+
+.intro-action-link[hidden] {
+  display: none;
 }
 
 .intro-action-link:hover,

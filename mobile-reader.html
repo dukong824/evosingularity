@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>진화의 특이점</title>
-  <link rel="icon" type="image/png" href="./assets/efavicon.png" />
+  <link rel="icon" type="image/png" href="./assets/wfavicon.png" />
   <link rel="stylesheet" href="mobile-reader.css" />
 </head>
 <body>
@@ -60,82 +60,6 @@
           <div id="mobileReaderTocList" class="menu-sheet-toc-list" role="list"></div>
         </div>
 
-        <div class="menu-sheet-action-row">
-          <button
-            id="mobileReaderToggleSettingsBtn"
-            class="menu-sheet-action menu-sheet-action-main"
-            type="button"
-            aria-label="페이지 설정"
-            title="페이지 설정"
-            aria-expanded="false"
-            aria-controls="mobileReaderSettingsPanel"
-          >
-            <img class="menu-sheet-action-icon" src="assets/textsettingsicon.png" alt="" />
-            <span class="menu-sheet-action-label">페이지 설정</span>
-          </button>
-          <button
-            id="mobileReaderResetSettingsBtn"
-            class="menu-settings-reset menu-settings-inline-reset"
-            type="button"
-            disabled
-            aria-hidden="true"
-          >
-            기본값 초기화
-          </button>
-        </div>
-
-        <section id="mobileReaderSettingsPanel" class="menu-sheet-subpanel" aria-hidden="true" aria-label="페이지 설정">
-          <div class="settings-item settings-item-select">
-            <label id="mobileReaderPageToneLabel" for="mobileReaderPageToneTrigger">페이지 색</label>
-            <div id="mobileReaderPageToneSelect" class="custom-select">
-              <button
-                id="mobileReaderPageToneTrigger"
-                class="custom-select-trigger"
-                type="button"
-                aria-haspopup="listbox"
-                aria-expanded="false"
-                aria-labelledby="mobileReaderPageToneLabel mobileReaderPageToneTriggerText"
-              >
-                <span id="mobileReaderPageToneTriggerText">화이트</span>
-              </button>
-
-              <div
-                id="mobileReaderPageToneOptions"
-                class="custom-select-options hidden"
-                role="listbox"
-                aria-labelledby="mobileReaderPageToneLabel"
-              >
-                <button class="custom-select-option is-selected" type="button" role="option" aria-selected="true" data-value="white">화이트</button>
-                <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="default">아이보리</button>
-                <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="warm">베이지</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-item">
-            <label for="fontSizeInput">글자 크기</label>
-            <input id="fontSizeInput" type="range" min="14" max="26" step="1" value="18" />
-            <span id="fontSizeValue">18px</span>
-          </div>
-
-          <div class="settings-item">
-            <label for="lineHeightInput">줄 간격</label>
-            <input id="lineHeightInput" type="range" min="1.4" max="2.2" step="0.1" value="1.9" />
-            <span id="lineHeightValue">1.9</span>
-          </div>
-
-          <div class="settings-item">
-            <label for="pagePadYInput">상하 여백</label>
-            <input id="pagePadYInput" type="range" min="12" max="56" step="1" value="22" />
-            <span id="pagePadYValue">22px</span>
-          </div>
-
-          <div class="settings-item">
-            <label for="sidePaddingInput">좌우 여백</label>
-            <input id="sidePaddingInput" type="range" min="12" max="80" step="1" value="35" />
-            <span id="sidePaddingValue">35px</span>
-          </div>
-        </section>
       </div>
     </div>
   </div>
@@ -181,6 +105,6 @@
     </nav>
   </main>
 
-  <script src="mobile-reader.js"></script>
+  <script type="module" src="mobile-reader.js"></script>
 </body>
 </html>

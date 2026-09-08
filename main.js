@@ -5,10 +5,25 @@ const homeActions = document.querySelector(".home-actions");
 const INTRO_EXIT_MS = 1050;
 const INTRO_MOVE_ONLY_RATIO = 0.52;
 const READER_URL = "./reader.html";
+const MAX_BOOK_JSON_CHARS = 2_000_000;
+const PASSIVE_POINTER_OPTIONS = { passive: true };
 
 let coverImageSrc = "";
 let spineImageSrc = "";
 let home3d = null;
+
+function parseBookMetaText(rawText) {
+  if (typeof rawText !== "string" || rawText.length > MAX_BOOK_JSON_CHARS) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawText);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 function sanitizeAssetURL(value) {
   const raw = String(value || "").trim();
@@ -43,7 +58,11 @@ async function loadBookMeta() {
     if (!response.ok) {
       return;
     }
-    const data = await response.json();
+    const rawText = await response.text();
+    const data = parseBookMetaText(rawText);
+    if (!data) {
+      return;
+    }
     coverImageSrc = sanitizeAssetURL(data?.coverImage || data?.cover || "");
     spineImageSrc = sanitizeAssetURL(data?.spineImage || data?.spine || "");
   } catch (error) {
@@ -145,6 +164,7 @@ function createBookCuboidA5(THREE) {
     new THREE.BoxGeometry(width, height, coverThickness),
     [coverEdge, coverSpine, coverEdge, coverEdge, coverFront, coverInside]
   );
+  const textureLoader = new THREE.TextureLoader();
 
   const hinge = new THREE.Group();
   const hingeAxisOffsetX = 0.001;
@@ -154,8 +174,7 @@ function createBookCuboidA5(THREE) {
   group.add(hinge);
 
   if (coverImageSrc) {
-    const loader = new THREE.TextureLoader();
-    loader.load(
+    textureLoader.load(
       coverImageSrc,
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -172,8 +191,7 @@ function createBookCuboidA5(THREE) {
   }
 
   if (spineImageSrc) {
-    const spineLoader = new THREE.TextureLoader();
-    spineLoader.load(
+    textureLoader.load(
       spineImageSrc,
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -223,8 +241,7 @@ function initHome3D() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
   renderer.setClearColor(0xffffff, 1);
-  book3dStage.innerHTML = "";
-  book3dStage.appendChild(renderer.domElement);
+  book3dStage.replaceChildren(renderer.domElement);
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xd9d9d9, 1.58));
   const key = new THREE.DirectionalLight(0xffffff, 1.48);
@@ -311,8 +328,8 @@ function initHome3D() {
     }
   };
 
-  window.addEventListener("pointermove", applyPointer);
-  window.addEventListener("pointerout", handlePointerOut);
+  window.addEventListener("pointermove", applyPointer, PASSIVE_POINTER_OPTIONS);
+  window.addEventListener("pointerout", handlePointerOut, PASSIVE_POINTER_OPTIONS);
   window.addEventListener("blur", resetPointer);
 
   object3d = createBookCuboidA5(THREE);
@@ -417,6 +434,24 @@ if (startReadingBtn) {
 }
 
 document.addEventListener("keydown", (event) => {
+  const target = event.target;
+  const tagName = target && target.tagName ? target.tagName.toLowerCase() : "";
+  const isInteractiveTarget = !!(
+    target &&
+    (
+      target.isContentEditable ||
+      tagName === "input" ||
+      tagName === "textarea" ||
+      tagName === "select" ||
+      tagName === "button" ||
+      tagName === "a"
+    )
+  );
+
+  if (isInteractiveTarget) {
+    return;
+  }
+
   if (event.key === "Enter") {
     startReading();
   }

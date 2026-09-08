@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>진화의 특이점</title>
-  <link rel="icon" type="image/png" href="./assets/efavicon.png" />
+  <link rel="icon" type="image/png" href="./assets/wfavicon.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -51,59 +51,6 @@
           <div id="controlsTocPanel" class="controls-subpanel" aria-hidden="true">
             <div id="tocList" class="toc-list" role="list"></div>
           </div>
-          <button
-            id="toggleSettingsBtn"
-            class="controls-menu-btn"
-            type="button"
-            aria-label="페이지 설정"
-            title="페이지 설정"
-            aria-expanded="false"
-            aria-controls="controlsSettingsPanel"
-          >
-            <img class="controls-menu-icon" src="./assets/textsettingsicon.png" alt="" />
-            <span class="controls-menu-label">페이지 설정</span>
-          </button>
-          <div id="controlsSettingsPanel" class="controls-subpanel" aria-hidden="true">
-            <div class="control control-select">
-              <label id="pageToneLabel" for="pageToneTrigger">페이지 색</label>
-              <div id="pageToneSelect" class="custom-select">
-                <button id="pageToneTrigger" class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pageToneLabel pageToneTriggerText">
-                  <span id="pageToneTriggerText">화이트</span>
-                  <span class="custom-select-caret" aria-hidden="true"></span>
-                </button>
-                <div id="pageToneOptions" class="custom-select-options hidden" role="listbox" aria-labelledby="pageToneLabel">
-                  <button class="custom-select-option is-selected" type="button" role="option" aria-selected="true" data-value="white">화이트</button>
-                  <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="default">아이보리</button>
-                  <button class="custom-select-option" type="button" role="option" aria-selected="false" data-value="warm">베이지</button>
-                </div>
-              </div>
-              <span class="range-value"></span>
-            </div>
-
-            <div class="control">
-              <label for="fontSize">글자 크기</label>
-              <input id="fontSize" type="range" min="10" max="30" step="1" value="15" />
-              <span id="fontSizeValue" class="range-value">15px</span>
-            </div>
-
-            <div class="control">
-              <label for="lineHeight">줄 간격</label>
-              <input id="lineHeight" type="range" min="1.3" max="2.2" step="0.1" value="1.7" />
-              <span id="lineHeightValue" class="range-value">1.7</span>
-            </div>
-
-            <div class="control">
-              <label for="pagePadY">상하 여백</label>
-              <input id="pagePadY" type="range" min="30" max="90" step="1" value="60" />
-              <span id="pagePadYValue" class="range-value">60px</span>
-            </div>
-
-            <div class="control">
-              <label for="pagePadX">좌우 여백</label>
-              <input id="pagePadX" type="range" min="30" max="90" step="1" value="60" />
-              <span id="pagePadXValue" class="range-value">60px</span>
-            </div>
-          </div>
           </div>
         </section>
       </div>
@@ -115,12 +62,12 @@
 
         <div class="spread">
           <article id="leftPage" class="page" title="왼쪽 페이지 클릭: 이전">
-            <div id="leftContent" class="page-content"></div>
+            <div id="leftContent" class="page-content" aria-live="polite"></div>
             <div id="leftPageNumber" class="page-number"></div>
           </article>
 
           <article id="rightPage" class="page" title="오른쪽 페이지 클릭: 다음">
-            <div id="rightContent" class="page-content"></div>
+            <div id="rightContent" class="page-content" aria-live="polite"></div>
             <div id="rightPageNumber" class="page-number"></div>
           </article>
         </div>
@@ -132,6 +79,6 @@
     </section>
   </main>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
